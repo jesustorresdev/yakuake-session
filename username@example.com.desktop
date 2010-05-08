@@ -1,0 +1,17 @@
+[Desktop Entry]
+Comment=
+Exec=yakuake-session -e ssh -- username@example.com
+GenericName=SSH to username@example.com
+Icon=utilities-terminal
+MimeType=
+Name=username@example.com
+Path=
+StartupNotify=false
+Terminal=false
+TerminalOptions=
+Type=Application
+X-DBUS-ServiceName=
+X-DBUS-StartupType=none
+X-KDE-SubstituteUID=false
+X-KDE-Username=
+X-Ubuntu-Gettext-Domain=desktop_kdebase

@@ -1,0 +1,99 @@
+#!/bin/bash
+#
+# yakuake-session - A script to create new yakuake sessions from command line.
+#
+# Copyright 2010 Jesús Torres <aplatanado@gulic.org>
+#
+# yakuake-session comes with ABSOLUTELY NO WARRANTY; for details see COPYING.
+# This is free software, and you are welcome to redistribute it
+# under certain conditions; see COPYING for details.
+#
+
+type -P yakuake &> /dev/null || konsole "$@"
+
+hold=0
+now=1
+props=''
+
+function addprops {
+  if [[ -z "$props" ]]; then
+    props="$1"
+  else
+    props="$props,$1"
+  fi
+}
+
+function runcommand {
+  qdbus org.kde.yakuake /yakuake/sessions runCommand "$1" > /dev/null
+}
+
+function showwindow {
+  ws=$(qdbus org.kde.yakuake /yakuake/MainWindow_1 \
+       Get com.trolltech.Qt.QWidget visible)
+  if [[ "$?" == 0 && "$ws" == "false" ]]; then
+    qdbus org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
+  fi
+}
+
+function showhelp {
+  cat <<EOF
+
+Usage: $(basename $0) [options] [args]
+
+Options:
+  --help                    Show help about options.
+  --workdir <dir>           Set the initial working directory of the new tab to 'dir'
+  --hold, --noclose         Do not close the session automatically when the command ends.
+  -p <property=value>       Change the value of a profile property.
+  -e <cmd>                  Command to execute.
+  -q                        Do not open yakuake window.
+
+Arguments:
+  args                      Arguments passed to command.
+EOF
+}
+
+opts=$(getopt -n $(basename $0) -o e:p:q \
+       -l workdir:,hold,noclose,help -- "$@")
+eval set -- "$opts"
+while true; do
+  case "$1" in
+    --help) showhelp; exit 0 ;;
+    --workdir) pwd="$2"; shift 2 ;;
+    --hold|--noclose) hold=1; shift ;;
+    -p) addprops "$2"; shift 2 ;;
+    -e) cmd="$2"; shift 2 ;;
+    -q) now=0; shift ;;
+    --) shift; break ;;
+    *) echo "$(basename $0): internal error"; exit 1 ;;
+  esac
+done
+for arg do args="$args '$arg'" ; done
+
+qdbus | grep -q org.kde.yakuake
+if [[ "$?" != 0 ]]; then
+  yakuake || exit 1
+fi
+
+qdbus org.kde.yakuake /yakuake/sessions addSession > /dev/null || exit 2
+if [[ -n "$props" ]]; then
+  type -P konsoleprofile &> /dev/null && \
+    runcommand "konsoleprofile '$props'" || exit 2
+fi
+if [[ -n "$pwd" ]]; then
+  runcommand "cd '$pwd'" || exit 2
+fi
+if [[ -n "$cmd" ]]; then
+  if type -p "$cmd" &> /dev/null; then
+    if [[ "$hold" == 1 ]]; then
+      runcommand "'$cmd' $args" || exit 2
+    else
+      runcommand "exec '$cmd' $args" || exit 2
+    fi
+  else
+    exit 3
+  fi
+fi
+if [[ "$now" == 1 ]]; then
+  showwindow
+fi
