@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# yakuake-session - A script to create new yakuake sessions from command line.
+# yakuake-session - A script to create new yakuake sessions from command-line.
 #
 # Copyright 2010 Jesús Torres <aplatanado@gulic.org>
 #
