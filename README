@@ -5,25 +5,37 @@ Copyright 2010 Jesús Torres <aplatanado@gulic.org>
 What is yakuake-session?
 ------------------------
 
-yakuake-session is a Bash script that allows to create new sessions in Yakuake terminal emulator from command line. I made it mainly to get a better integration of Yakuake in KDE desktop environment. For example, thanks to it Yakuake can replace Konsole in "Open terminal here" action in Dolphin or we can setup a menu similar to Konsole Profiles widget but using Yakuake instead of Konsole.
+yakuake-session is a Bash script that allows to create new sessions in Yakuake
+terminal emulator from command line. I made it mainly to get a better
+integration of Yakuake in KDE desktop environment. For example, thanks to it
+Yakuake can replace Konsole in "Open terminal here" action in Dolphin or we
+can setup a menu similar to Konsole Profiles widget but using Yakuake instead
+of Konsole.
 
 
 Usage
 -----
 
-The yakuake-session script should to be copied to ~/bin, /usr/local/bin or some other directory in $PATH variable, if we want to avoid indicating the path of the script when invoked.
+The yakuake-session script should to be copied to ~/bin, /usr/local/bin or
+some other directory in $PATH variable, if we want to avoid indicating the
+path of the script when invoked.
 
 $ yakuake-session
 
-Without arguments, yakuake-session creates a new session in the currently running Yakuake terminal emulator. The option -e allows to indicate a command to execute in the new session.
+Without arguments, yakuake-session creates a new session in the currently
+running Yakuake terminal emulator. The option -e allows to indicate a command
+to execute in the new session.
 
 $ yakuake-session -e ls
 
-If the command requires some arguments, they are taken from non-option arguments passed to yakuake-session. That means that if some arguments for the command begin with '-', they must passed to yakuake-session after '--'.
+If the command requires some arguments, they are taken from non-option
+arguments passed to yakuake-session. That means that if some arguments for the
+command begin with '-', they must passed to yakuake-session after '--'.
 
 $ yakuake-session -e ssh -- -X user@example.com
 
-Another useful option is --workdir. It allows to change the working directory before execute the command.
+Another useful option is --workdir. It allows to change the working directory
+before execute the command.
 
 $ yakuake-session --workdir /tmp -e ls
 
@@ -48,15 +60,29 @@ Arguments:
 Action in Dolphin
 -----------------
 
-Dolphin provides the action "Open terminal here" that opens a Konsole terminal emulator in the specified folder. This behavior can be changed to use Yakuake instead of Konsole coping ServiceMenus/konsolehere.desktop into ~/.kde/share/kde4/services/ServiceMenus/. If we do not want to change the behavior of "Open terminal here", we can copy ServiceMenus/yakuakehere.desktop into ~/.kde/share/kde4/services/ServiceMenus/ to add the new action "Open yakuake here" to Dolphin.
+Dolphin provides the action "Open terminal here" that opens a Konsole terminal
+emulator in the specified folder. This behavior can be changed to use Yakuake
+instead of Konsole coping ServiceMenus/konsolehere.desktop into
+~/.kde/share/kde4/services/ServiceMenus/. If we do not want to change the
+behavior of "Open terminal here", we can copy ServiceMenus/yakuakehere.desktop
+into ~/.kde/share/kde4/services/ServiceMenus/ to add the new action "Open
+yakuake here" to Dolphin.
 
 
 Quick Access Menu
 -----------------
 
-Konsole Profiles is a Plasma widget that allows to open a new terminal window, configured according to a select profile, and automatically execute a command in it. We can get something similar but for Yakuake using the QuickAccess widget. We only have to make a directory and setup a QuickAccess widget instance to use it as origin (I also like to disable the browsing). Then we add some "Link to Application" to that directory, such that each one use yakuake-session to create a new Yakuake session and to execute the command that we want.
+Konsole Profiles is a Plasma widget that allows to open a new terminal window,
+configured according to a select profile, and automatically execute a command
+in it. We can get something similar but for Yakuake using the QuickAccess
+widget. We only have to make a directory and setup a QuickAccess widget
+instance to use it as origin (I also like to disable the browsing). Then we
+add some "Link to Application" to that directory, such that each one use
+yakuake-session to create a new Yakuake session and to execute the command
+that we want.
 
-The file examples/username@example.com.desktop contains an example that launch a ssh client in a new Yakuake session.
+The file examples/username@example.com.desktop contains an example that launch
+a ssh client in a new Yakuake session.
 
 
 -- Jesús Torres <aplatanado@gulic.org>
