@@ -49,7 +49,7 @@ Options:
   --help                    Show help about options.
   --workdir <dir>           Set the initial working directory of the new tab to 'dir'
   --hold, --noclose         Do not close the session automatically when the command ends.
-  -p <property=value>       Change the value of a profile property.
+  -p <property=value>       Change the value of a profile property (only for KDE 4).
   -e <cmd>                  Command to execute.
   -q                        Do not open yakuake window.
 

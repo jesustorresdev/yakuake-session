@@ -11,6 +11,59 @@
 
 type -P yakuake &> /dev/null || konsole "$@"
 
+function getcomm {
+  type -P qdbus &> /dev/null && \
+    qdbus 2> /dev/null | grep -q org.kde.yakuake
+  if [[ "$?" == 0 ]]; then
+    echo dbus
+    return
+  fi
+  type -P dcop &> /dev/null && \
+    dcop 2> /dev/null | grep -q yakuake
+  if [[ "$?" == 0 ]]; then
+    echo dcop
+    return
+  fi
+  echo none
+}
+
+#
+# DBUS
+
+function dbus_addsession {
+  qdbus org.kde.yakuake /yakuake/sessions addSession > /dev/null
+}
+
+function dbus_runcommand {
+  qdbus org.kde.yakuake /yakuake/sessions runCommand "$1" > /dev/null
+}
+
+function dbus_showwindow {
+  ws=$(qdbus org.kde.yakuake /yakuake/MainWindow_1 \
+       Get com.trolltech.Qt.QWidget visible)
+  if [[ "$?" == 0 && "$ws" == "false" ]]; then
+    qdbus org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
+  fi
+}
+
+#
+# DCOP
+
+function dcop_addsession {
+  dcop yakuake DCOPInterface slotAddSession > /dev/null
+}
+
+function dcop_runcommand {
+  dcop yakuake DCOPInterface slotRunCommandInSession "$1" > /dev/null
+}
+
+function dcop_showwindow {
+  ws=$(dcop yakuake yakuake-mainwindow#1 visible)
+  if [[ "$?" == 0 && "$ws" == false ]]; then
+    dcop yakuake DCOPInterface slotToggleState > /dev/null
+  fi
+}
+
 hold=0
 now=1
 props=''
@@ -23,18 +76,6 @@ function addprops {
   fi
 }
 
-function runcommand {
-  qdbus org.kde.yakuake /yakuake/sessions runCommand "$1" > /dev/null
-}
-
-function showwindow {
-  ws=$(qdbus org.kde.yakuake /yakuake/MainWindow_1 \
-       Get com.trolltech.Qt.QWidget visible)
-  if [[ "$?" == 0 && "$ws" == "false" ]]; then
-    qdbus org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
-  fi
-}
-
 function showhelp {
   cat <<EOF
 
@@ -44,7 +85,7 @@ Options:
   --help                    Show help about options.
   --workdir <dir>           Set the initial working directory of the new tab to 'dir'
   --hold, --noclose         Do not close the session automatically when the command ends.
-  -p <property=value>       Change the value of a profile property.
+  -p <property=value>       Change the value of a profile property (only for KDE 4).
   -e <cmd>                  Command to execute.
   -q                        Do not open yakuake window.
 
@@ -70,30 +111,34 @@ while true; do
 done
 for arg do args="$args '$arg'" ; done
 
-qdbus | grep -q org.kde.yakuake
-if [[ "$?" != 0 ]]; then
-  yakuake || exit 1
+comm=$(getcomm)
+if [[ "$comm" == none ]]; then
+  yakuake || exit 2
+  comm=$(getcomm)
+  if [[ "$comm" == none ]]; then
+    exit 3
+  fi
 fi
 
-qdbus org.kde.yakuake /yakuake/sessions addSession > /dev/null || exit 2
+${comm}_addsession > /dev/null || exit 4
 if [[ -n "$props" ]]; then
   type -P konsoleprofile &> /dev/null && \
-    runcommand "konsoleprofile '$props'" || exit 2
+    ${comm}_runcommand "konsoleprofile '$props'" || exit 4
 fi
 if [[ -n "$pwd" ]]; then
-  runcommand "cd '$pwd'" || exit 2
+  ${comm}_runcommand "cd '$pwd'" || exit 4
 fi
 if [[ -n "$cmd" ]]; then
   if type -p "$cmd" &> /dev/null; then
     if [[ "$hold" == 1 ]]; then
-      runcommand "'$cmd' $args" || exit 2
+      ${comm}_runcommand "'$cmd' $args" || exit 4
     else
-      runcommand "exec '$cmd' $args" || exit 2
+      ${comm}_runcommand "exec '$cmd' $args" || exit 4
     fi
   else
     exit 3
   fi
 fi
 if [[ "$now" == 1 ]]; then
-  showwindow
+  ${comm}_showwindow
 fi
