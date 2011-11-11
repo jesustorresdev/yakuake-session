@@ -67,6 +67,7 @@ function dcop_showwindow {
 hold=0
 now=1
 props=''
+pwd="$PWD"
 
 function addprops {
   if [[ -z "$props" ]]; then
@@ -83,7 +84,8 @@ Usage: $(basename $0) [options] [args]
 
 Options:
   --help                    Show help about options.
-  --workdir <dir>           Set the initial working directory of the new tab to 'dir'
+  -h, --homedir             Set the working directory of the new tab to the user's home.
+  -w, --workdir <dir>       Set the working directory of the new tab to 'dir'
   --hold, --noclose         Do not close the session automatically when the command ends.
   -p <property=value>       Change the value of a profile property (only for KDE 4).
   -e <cmd>                  Command to execute.
@@ -94,16 +96,17 @@ Arguments:
 EOF
 }
 
-opts=$(getopt -n $(basename $0) -o e:p:q \
+opts=$(getopt -n $(basename $0) -o e:p:w:hq \
        -l workdir:,hold,noclose,help -- "$@")
 eval set -- "$opts"
 while true; do
   case "$1" in
     --help) showhelp; exit 0 ;;
-    --workdir) pwd="$2"; shift 2 ;;
+    -w|--workdir) pwd="$2"; shift 2 ;;
     --hold|--noclose) hold=1; shift ;;
     -p) addprops "$2"; shift 2 ;;
     -e) cmd="$2"; shift 2 ;;
+    -h|--homedir) pwd=''; shift ;;
     -q) now=0; shift ;;
     --) shift; break ;;
     *) echo "$(basename $0): internal error"; exit 1 ;;

@@ -1,6 +1,6 @@
 [Desktop Entry]
 Comment=
-Exec=yakuake-session -e ssh -- username@example.com
+Exec=yakuake-session -h -e ssh -- username@example.com
 GenericName=SSH to username@example.com
 Icon=utilities-terminal
 MimeType=

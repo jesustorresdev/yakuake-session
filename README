@@ -28,11 +28,17 @@ to execute in the new session.
 
 $ yakuake-session -e ls
 
+The session working directory is changed to the directory where yakuake-session
+was called, before execute the command. If we want to launch the command from
+user's home directory then we would use the option -h.
+
+$ yakuake-session -h -e ls
+
 If the command requires some arguments, they are taken from non-option
 arguments passed to yakuake-session. That means that if some arguments for the
 command begin with '-', they must passed to yakuake-session after '--'.
 
-$ yakuake-session -e ssh -- -X user@example.com
+$ yakuake-session -h -e ssh -- -X user@example.com
 
 Another useful option is --workdir. It allows to change the working directory
 before execute the command.
@@ -47,7 +53,8 @@ Usage: yakuake-session [options] [args]
 
 Options:
   --help                    Show help about options.
-  --workdir <dir>           Set the initial working directory of the new tab to 'dir'
+  -h, --homedir             Set the working directory of the new tab to the user's home.
+  -w, --workdir <dir>       Set the working directory of the new tab to 'dir'
   --hold, --noclose         Do not close the session automatically when the command ends.
   -p <property=value>       Change the value of a profile property (only for KDE 4).
   -e <cmd>                  Command to execute.
