@@ -40,7 +40,7 @@ function dbus_runcommand {
 
 function dbus_showwindow {
   ws=$(qdbus org.kde.yakuake /yakuake/MainWindow_1 \
-       Get com.trolltech.Qt.QWidget visible)
+       Get org.qtproject.Qt.QWidget visible)
   if [[ "$?" == 0 && "$ws" == "false" ]]; then
     qdbus org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
   fi
