@@ -38,10 +38,19 @@ function dbus_runcommand {
   qdbus org.kde.yakuake /yakuake/sessions runCommand "$1" > /dev/null
 }
 
+function dbus_hasinterface {
+  qdbus org.kde.yakuake /yakuake/MainWindow_1 Introspect | grep -F "<interface name=\"$1\">"
+}
+
 function dbus_showwindow {
-  ws=$(qdbus org.kde.yakuake /yakuake/MainWindow_1 \
-       Get org.qtproject.Qt.QWidget visible)
-  if [[ "$?" == 0 && "$ws" == "false" ]]; then
+  dbus_hasinterface com.trolltech.Qt.QWidget
+  if [[ $? -eq 0 ]]; then
+    interface="com.trolltech.Qt.QWidget"
+  else
+    interface="org.qtproject.Qt.QWidget"
+  fi
+  ws=$(qdbus org.kde.yakuake /yakuake/MainWindow_1 Get $interface visible)
+  if [[ $? -eq 0 && "$ws" == "false" ]]; then
     qdbus org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
   fi
 }
