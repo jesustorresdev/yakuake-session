@@ -42,7 +42,7 @@ function dbus_hasinterface {
   qdbus org.kde.yakuake /yakuake/MainWindow_1 Introspect | grep -F "<interface name=\"$1\">"
 }
 
-function dbus_addtitle {
+function dbus_settitle {
   id=$(qdbus org.kde.yakuake /yakuake/sessions sessionIdList | tr , "\n" | sort -g | tail -1 | tr -d '\n')
   qdbus org.kde.yakuake /yakuake/tabs setTabTitle "$id" "$1" 
 }
@@ -63,7 +63,7 @@ function dbus_showwindow {
 #
 # DCOP
 
-function dcop_addtitle {
+function dcop_settitle {
   echo "$(basename $0): warning: set tab title is not yet supported when using DCOP interface" 1>&2
 }
 
@@ -163,7 +163,7 @@ if [[ -n "$cmd" ]]; then
   fi
 fi
 if [[ -n "$title" ]]; then
-  ${comm}_addtitle "$title"
+  ${comm}_settitle "$title"
 fi
 if [[ "$now" == 1 ]]; then
   ${comm}_showwindow
