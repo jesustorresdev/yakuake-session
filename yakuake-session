@@ -42,6 +42,13 @@ function dbus_hasinterface {
   qdbus org.kde.yakuake /yakuake/MainWindow_1 Introspect | grep -F "<interface name=\"$1\">"
 }
 
+function dbus_addtitle {
+  sessionids=$(qdbus org.kde.yakuake /yakuake/sessions sessionIdList)
+  id=${sessionids##*,}
+
+  qdbus org.kde.yakuake /yakuake/tabs setTabTitle "$id" "$1" 
+}
+
 function dbus_showwindow {
   dbus_hasinterface com.trolltech.Qt.QWidget
   if [[ $? -eq 0 ]]; then
@@ -57,6 +64,9 @@ function dbus_showwindow {
 
 #
 # DCOP
+
+function dcop_addtitle {
+}
 
 function dcop_addsession {
   dcop yakuake DCOPInterface slotAddSession > /dev/null
@@ -99,13 +109,14 @@ Options:
   -p <property=value>       Change the value of a profile property (only for KDE 4).
   -e <cmd>                  Command to execute.
   -q                        Do not open yakuake window.
+  -t <title>                Set the title of the new tab
 
 Arguments:
   args                      Arguments passed to command.
 EOF
 }
 
-opts=$(getopt -n $(basename $0) -o e:p:w:hq \
+opts=$(getopt -n $(basename $0) -o t:e:p:w:hq \
        -l workdir:,hold,noclose,help -- "$@")
 eval set -- "$opts"
 while true; do
@@ -115,6 +126,7 @@ while true; do
     --hold|--noclose) hold=1; shift ;;
     -p) addprops "$2"; shift 2 ;;
     -e) cmd="$2"; shift 2 ;;
+    -t) title="$2"; shift 2 ;;
     -h|--homedir) pwd=''; shift ;;
     -q) now=0; shift ;;
     --) shift; break ;;
@@ -150,6 +162,9 @@ if [[ -n "$cmd" ]]; then
   else
     exit 3
   fi
+fi
+if [[ -n "$title" ]]; then
+  ${comm}_addtitle "$title"
 fi
 if [[ "$now" == 1 ]]; then
   ${comm}_showwindow
