@@ -43,9 +43,8 @@ function dbus_hasinterface {
 }
 
 function dbus_addtitle {
-  sessionids=$(qdbus org.kde.yakuake /yakuake/sessions sessionIdList)
-  id=${sessionids##*,}
-
+  id=$(qdbus org.kde.yakuake /yakuake/sessions sessionIdList | tr , "\n" | sort -g | tail -1 | tr -d '\n')
+  echo $id
   qdbus org.kde.yakuake /yakuake/tabs setTabTitle "$id" "$1" 
 }
 
@@ -66,6 +65,7 @@ function dbus_showwindow {
 # DCOP
 
 function dcop_addtitle {
+  echo "not supportet"
 }
 
 function dcop_addsession {
