@@ -26,6 +26,10 @@ Without arguments, yakuake-session creates a new session in the currently
 running Yakuake terminal emulator. The option -e allows to indicate a command
 to execute in the new session.
 
+$ yakuake-session -t "Title"
+
+The argument -t sets the title for the new tab.
+
 $ yakuake-session -e ls
 
 The session working directory is changed to the directory where yakuake-session
@@ -59,6 +63,7 @@ Options:
   -p <property=value>       Change the value of a profile property (only for KDE 4).
   -e <cmd>                  Command to execute.
   -q                        Do not open yakuake window.
+  -t <title>                Set the title of the new tab
 
 Arguments:
   args                      Arguments passed to command.
