@@ -44,7 +44,6 @@ function dbus_hasinterface {
 
 function dbus_addtitle {
   id=$(qdbus org.kde.yakuake /yakuake/sessions sessionIdList | tr , "\n" | sort -g | tail -1 | tr -d '\n')
-  echo $id
   qdbus org.kde.yakuake /yakuake/tabs setTabTitle "$id" "$1" 
 }
 
@@ -65,7 +64,7 @@ function dbus_showwindow {
 # DCOP
 
 function dcop_addtitle {
-  echo "not supportet"
+  echo "$(basename $0): warning: set tab title is not yet supported when using DCOP interface" 1>&2
 }
 
 function dcop_addsession {
@@ -130,7 +129,7 @@ while true; do
     -h|--homedir) pwd=''; shift ;;
     -q) now=0; shift ;;
     --) shift; break ;;
-    *) echo "$(basename $0): internal error"; exit 1 ;;
+    *) echo "$(basename $0): internal error" 1>&2; exit 1 ;;
   esac
 done
 for arg do args="$args '$arg'" ; done
