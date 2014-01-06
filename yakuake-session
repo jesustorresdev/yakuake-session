@@ -2,14 +2,18 @@
 #
 # yakuake-session - A script to create new yakuake sessions from command-line.
 #
-# Copyright 2010 Jesús Torres <aplatanado@gulic.org>
+# Copyright 2010-2013 Jesús Torres <aplatanado@gulic.org>
 #
 # yakuake-session comes with ABSOLUTELY NO WARRANTY; for details see COPYING.
 # This is free software, and you are welcome to redistribute it
 # under certain conditions; see COPYING for details.
 #
 
-type -P yakuake &> /dev/null || konsole "$@"
+type -P yakuake &> /dev/null
+if [ "$?" != 0 ]; then
+  echo "$(basename $0): error: yakuake is not installed" 1>&2
+  exit 5
+fi
 
 function getcomm {
   type -P qdbus &> /dev/null && \
