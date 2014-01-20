@@ -1,9 +1,7 @@
-yakuake-session - A script to create new yakuake sessions from command-line.
+yakuake-session - A script to create new yakuake sessions from command-line.<br />
 Copyright 2010-2013 Jesús Torres <aplatanado@gulic.org>
 
-
-What is yakuake-session?
-------------------------
+## What is yakuake-session?
 
 yakuake-session is a Bash script that allows to create new sessions in Yakuake
 terminal emulator from command line. I made it mainly to get a better
@@ -12,45 +10,71 @@ Yakuake can replace Konsole in "Open terminal here" action in Dolphin or we
 can setup a menu similar to Konsole Profiles widget but using Yakuake instead
 of Konsole.
 
+## Installation
 
-Usage
------
+Clone this repository.
 
-The yakuake-session script should to be copied to ~/bin, /usr/local/bin or
-some other directory in $PATH variable, if we want to avoid indicating the
-path of the script when invoked.
+```
+git clone https://github.com/aplatanado/yakuake-session.git
+```
 
+Copy the yakuake-session script to `~/bin`, `/usr/bin` or some other directory
+in `$PATH` variable, if we want to avoid indicating the path of the script when
+invoked. For example, on Ubuntu:
+
+```
+sudo cp yakuake-session /usr/bin
+```
+
+## Usage
+
+To invoke yakuake-session:
+
+```
 $ yakuake-session
+```
 
 Without arguments, yakuake-session creates a new session in the currently
-running Yakuake terminal emulator. The option -e allows to indicate a command
-to execute in the new session.
+running Yakuake terminal emulator. 
 
-$ yakuake-session -t "Title"
+The option `-e` allows to indicate a command to execute in the new session.
 
-The argument -t sets the title for the new tab.
-
+```
 $ yakuake-session -e ls
+```
+
+The argument `-t` sets the title for the new tab.
+
+```
+$ yakuake-session -t "Title"
+```
 
 The session working directory is changed to the directory where yakuake-session
 was called, before execute the command. If we want to launch the command from
-user's home directory then we would use the option -h.
+user's home directory then we would use the option `-h`.
 
+```
 $ yakuake-session -h -e ls
+```
 
 If the command requires some arguments, they are taken from non-option
 arguments passed to yakuake-session. That means that if some arguments for the
-command begin with '-', they must passed to yakuake-session after '--'.
+command begin with `-`, they must passed to yakuake-session after `--`.
 
+```
 $ yakuake-session -h -e ssh -- -X user@example.com
+```
 
-Another useful option is --workdir. It allows to change the working directory
+Another useful option is `--workdir`. It allows to change the working directory
 before execute the command.
 
+```
 $ yakuake-session --workdir /tmp -e ls
+```
 
 yakuake-session has many other options that were shown in help.
 
+```
 $ yakuake-session --help
 
 Usage: yakuake-session [options] [args]
@@ -67,22 +91,27 @@ Options:
 
 Arguments:
   args                      Arguments passed to command.
+```
 
-
-Action in Dolphin
------------------
+## Action in Dolphin
 
 Dolphin provides the action "Open terminal here" that opens a Konsole terminal
 emulator in the specified folder. This behavior can be changed to use Yakuake
-instead of Konsole coping ServiceMenus/konsolehere.desktop into
-~/.kde/share/kde4/services/ServiceMenus/. If we do not want to change the
-behavior of "Open terminal here", we can copy ServiceMenus/yakuakehere.desktop
-into ~/.kde/share/kde4/services/ServiceMenus/ to add the new action "Open
-yakuake here" to Dolphin.
+instead of Konsole coping `konsolehere.desktop` into KDE Service Menus. 
 
+```
+cp ServiceMenus/konsolehere.desktop ~/.kde/share/kde4/services/ServiceMenus/
+```
 
-Quick Access Menu
------------------
+If we do not want to change the behavior of "Open terminal here", then copy
+`yakuakehere.desktop` instead to add the new action "Open yakuake here" to
+Dolphin.
+
+```
+cp ServiceMenus/yakuakehere.desktop ~/.kde/share/kde4/services/ServiceMenus/ 
+```
+
+## Quick Access Menu
 
 Konsole Profiles is a Plasma widget that allows to open a new terminal window,
 configured according to a select profile, and automatically execute a command
@@ -93,7 +122,7 @@ add some "Link to Application" to that directory, such that each one use
 yakuake-session to create a new Yakuake session and to execute the command
 that we want.
 
-The file examples/username@example.com.desktop contains an example that launch
+The file `examples/username@example.com.desktop` contains an example that launch
 a ssh client in a new Yakuake session.
 
 
