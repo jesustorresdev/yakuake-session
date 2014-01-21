@@ -10,6 +10,12 @@ Yakuake can replace Konsole in "Open terminal here" action in Dolphin or we
 can setup a menu similar to Konsole Profiles widget but using Yakuake instead
 of Konsole.
 
+## Bugs & known issues
+
+ * Bug [#1177823](http://bugs.launchpad.net/ubuntu/+source/qt4-x11/+bug/1177823)
+breaks the command `qdbus` in Kubuntu 13.04/13.10. It can be fixed installing
+`qt4-default` package.
+
 ## Installation
 
 Clone this repository.
