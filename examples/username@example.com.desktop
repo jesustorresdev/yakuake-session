@@ -1,5 +1,4 @@
 [Desktop Entry]
-Comment=
 Exec=yakuake-session -h -e ssh -- username@example.com
 GenericName=SSH to username@example.com
 Icon=utilities-terminal
@@ -10,8 +9,3 @@ StartupNotify=false
 Terminal=false
 TerminalOptions=
 Type=Application
-X-DBUS-ServiceName=
-X-DBUS-StartupType=none
-X-KDE-SubstituteUID=false
-X-KDE-Username=
-X-Ubuntu-Gettext-Domain=desktop_kdebase
