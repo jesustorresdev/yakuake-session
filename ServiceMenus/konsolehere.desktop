@@ -5,9 +5,9 @@ Actions=openTerminalHere;
 X-KDE-AuthorizeAction=shell_access
 
 [Desktop Action openTerminalHere]
-Name=Open Terminal Here
-Name[es]=Abrir Terminal aquí
-Name[es_ES]=Abrir Terminal aquí
+Name=Open terminal Here
+Name[es]=Abrir terminal aquí
+Name[es_ES]=Abrir terminal aquí
 Icon=utilities-terminal
 Exec=yakuake-session --workdir %f
 #Exec=$HOME/.kde/share/kde4/services/ServiceMenus/yakuake-session --workdir %f
