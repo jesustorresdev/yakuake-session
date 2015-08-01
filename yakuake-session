@@ -9,14 +9,16 @@
 # under certain conditions; see COPYING for details.
 #
 
-### Program help
-# A few utility functions to show errors and the help about this program
+### Utility functions
+# A few utility functions to show errorsi, handle programa exit and more
+
+PROGRAM_NAME="$(basename "$0")"
 
 # Show information about how to use this program 
 function show_help() {
   cat <<EOF
 
-Usage: $(basename "$0") [options] [args]
+Usage: $PROGRAM_NAME [options] [args]
 
 Options:
   --help                    Show help about options.
@@ -33,19 +35,20 @@ Arguments:
 EOF
 }
 
-# Show an error message and terminate the program
+# Show an error message and end the program
 function error_exit() {
-  echo "$(basename "$0"): error: ${2:-"unknown error"}" 1>&2
+  echo "$PROGRAM_NAME: error: ${2:-"unknown error"}" 1>&2
   exit "${1:-1}"
 }
 
 # Show a warning message
 function warning() {
-  echo "$(basename "$0"): warning: ${1:-"unknown error"}" 1>&2
+  echo "$PROGRAM_NAME: warning: ${1:-"unknown error"}" 1>&2
 }
 
 ### Profile setup
-# Functions to handle profile properties and setup them in the new session
+# Functions to handle terminal profile properties and setup
+# them in the new session.
 
 profile_properties=''
 
@@ -67,7 +70,7 @@ function profile_setup_command() {
 }
 
 ### Yakuake IPC
-# A few functions to make it easy to invoke some Yakuake methods
+# Functions to make it easy to invoke some Yakuake methods
 
 # Detect which IPC technology we have to use to talk to Yakuake
 function detect_ipc_interface() {
@@ -86,14 +89,13 @@ function detect_ipc_interface() {
   echo none
 }
 
-# Initialize IPC to Yakuake
+# Initialize IPC interface to Yakuake
 function init_ipc_interface() {
   local comm=$(detect_ipc_interface)
   if [[ "$comm" == none ]]; then
+    # Maybe Yakuake is not running. Launch de program and try it again
     type -P yakuake &> /dev/null || error_exit 11 "Yakuake is not installed"
     yakuake &> /dev/null || error_exit 126 "Yakuake can not be executed: exit with status $?"
-
-    # Try it again
     comm=$(detect_ipc_interface)
   fi
 
@@ -111,7 +113,7 @@ function init_ipc_interface() {
     }
 
     function yakuake_settitle() {
-      local id=$(qdbus org.kde.yakuake /yakuake/sessions sessionIdList | tr , "\n" | sort -g | tail -1 | tr -d '\n')
+      local id="$(qdbus org.kde.yakuake /yakuake/sessions sessionIdList | tr , "\n" | sort -g | tail -1 | tr -d '\n')"
       qdbus org.kde.yakuake /yakuake/tabs setTabTitle "$id" "$1" 
     }
 
@@ -122,7 +124,7 @@ function init_ipc_interface() {
       else
         local interface="org.qtproject.Qt.QWidget"
       fi
-      local ws=$(qdbus org.kde.yakuake /yakuake/MainWindow_1 Get $interface visible)
+      local ws="$(qdbus org.kde.yakuake /yakuake/MainWindow_1 Get "$interface" visible)"
       if [[ "$?" == 0 && "$ws" == "false" ]]; then
         qdbus org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
       fi
@@ -141,7 +143,7 @@ function init_ipc_interface() {
     }
 
     function yakuake_showwindow() {
-      ws=$(dcop yakuake yakuake-mainwindow#1 visible)
+      ws="$(dcop yakuake yakuake-mainwindow#1 visible)"
       if [[ "$?" == 0 && "$ws" == false ]]; then
         dcop yakuake DCOPInterface slotToggleState > /dev/null
       fi
@@ -163,7 +165,7 @@ function yakuake_session() {
   local props=''
 
   # Parse command line options
-  local opts=$(getopt -n "$(basename "$0")" -o t:e:p:w:hq \
+  local opts=$(getopt -n "$PROGRAM_NAME" -o t:e:p:w:hq \
                -l workdir:,hold,noclose,help -- "$@")
   eval set -- "$opts"
   while true; do
@@ -181,9 +183,10 @@ function yakuake_session() {
     esac
   done
   for arg do args="$args '$arg'" ; done
-
-  # Create a new Yakuake session
+ 
   init_ipc_interface
+
+  # Create a new terminal session in Yakuake
   yakuake_addsession > /dev/null || error_exit 2 'cannot create a new Yakuake session'
   if [[ -n "$title" ]]; then
     yakuake_settitle "$title"
