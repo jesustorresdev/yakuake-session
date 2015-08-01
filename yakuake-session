@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# yakuake-session - A script to create new yakuake sessions from command-line.
+# yakuake-session - A script to create new Yakuake sessions from command-line.
 #
 # Copyright 2010-2015 Jesús Torres <jmtorres@ull.es>
 #
@@ -9,100 +9,14 @@
 # under certain conditions; see COPYING for details.
 #
 
-type -P yakuake &> /dev/null
-if [ "$?" != 0 ]; then
-  echo "$(basename $0): error: yakuake is not installed" 1>&2
-  exit 5
-fi
+### Program help
+# A few utility functions to show errors and the help about this program
 
-function getcomm {
-  type -P qdbus &> /dev/null && \
-    qdbus 2> /dev/null | grep -q org.kde.yakuake
-  if [[ "$?" == 0 ]]; then
-    echo dbus
-    return
-  fi
-  type -P dcop &> /dev/null && \
-    dcop 2> /dev/null | grep -q yakuake
-  if [[ "$?" == 0 ]]; then
-    echo dcop
-    return
-  fi
-  echo none
-}
-
-#
-# DBUS
-
-function dbus_addsession {
-  qdbus org.kde.yakuake /yakuake/sessions addSession > /dev/null
-}
-
-function dbus_runcommand {
-  qdbus org.kde.yakuake /yakuake/sessions runCommand "$1" > /dev/null
-}
-
-function dbus_hasinterface {
-  qdbus org.kde.yakuake /yakuake/MainWindow_1 Introspect | grep -F "<interface name=\"$1\">"
-}
-
-function dbus_settitle {
-  id=$(qdbus org.kde.yakuake /yakuake/sessions sessionIdList | tr , "\n" | sort -g | tail -1 | tr -d '\n')
-  qdbus org.kde.yakuake /yakuake/tabs setTabTitle "$id" "$1" 
-}
-
-function dbus_showwindow {
-  dbus_hasinterface com.trolltech.Qt.QWidget
-  if [[ $? -eq 0 ]]; then
-    interface="com.trolltech.Qt.QWidget"
-  else
-    interface="org.qtproject.Qt.QWidget"
-  fi
-  ws=$(qdbus org.kde.yakuake /yakuake/MainWindow_1 Get $interface visible)
-  if [[ $? -eq 0 && "$ws" == "false" ]]; then
-    qdbus org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
-  fi
-}
-
-#
-# DCOP
-
-function dcop_settitle {
-  echo "$(basename $0): warning: set tab title is not yet supported when using DCOP interface" 1>&2
-}
-
-function dcop_addsession {
-  dcop yakuake DCOPInterface slotAddSession > /dev/null
-}
-
-function dcop_runcommand {
-  dcop yakuake DCOPInterface slotRunCommandInSession "$1" > /dev/null
-}
-
-function dcop_showwindow {
-  ws=$(dcop yakuake yakuake-mainwindow#1 visible)
-  if [[ "$?" == 0 && "$ws" == false ]]; then
-    dcop yakuake DCOPInterface slotToggleState > /dev/null
-  fi
-}
-
-hold=0
-now=1
-props=''
-pwd="$PWD"
-
-function addprops {
-  if [[ -z "$props" ]]; then
-    props="$1"
-  else
-    props="$props,$1"
-  fi
-}
-
-function showhelp {
+# Show information about how to use this program 
+function show_help() {
   cat <<EOF
 
-Usage: $(basename $0) [options] [args]
+Usage: $(basename "$0") [options] [args]
 
 Options:
   --help                    Show help about options.
@@ -119,56 +33,187 @@ Arguments:
 EOF
 }
 
-opts=$(getopt -n $(basename $0) -o t:e:p:w:hq \
-       -l workdir:,hold,noclose,help -- "$@")
-eval set -- "$opts"
-while true; do
-  case "$1" in
-    --help) showhelp; exit 0 ;;
-    -w|--workdir) pwd="$2"; shift 2 ;;
-    --hold|--noclose) hold=1; shift ;;
-    -p) addprops "$2"; shift 2 ;;
-    -e) cmd="$2"; shift 2 ;;
-    -t) title="$2"; shift 2 ;;
-    -h|--homedir) pwd=''; shift ;;
-    -q) now=0; shift ;;
-    --) shift; break ;;
-    *) echo "$(basename $0): internal error" 1>&2; exit 1 ;;
-  esac
-done
-for arg do args="$args '$arg'" ; done
+# Show an error message and terminate the program
+function error_exit() {
+  echo "$(basename "$0"): error: ${2:-"unknown error"}" 1>&2
+  exit "${1:-1}"
+}
 
-comm=$(getcomm)
-if [[ "$comm" == none ]]; then
-  yakuake || exit 2
-  comm=$(getcomm)
-  if [[ "$comm" == none ]]; then
-    exit 3
-  fi
-fi
+# Show a warning message
+function warning() {
+  echo "$(basename "$0"): warning: ${1:-"unknown error"}" 1>&2
+}
 
-${comm}_addsession > /dev/null || exit 4
-if [[ -n "$props" ]]; then
-  type -P konsoleprofile &> /dev/null && \
-    ${comm}_runcommand "konsoleprofile '$props'" || exit 4
-fi
-if [[ -n "$pwd" ]]; then
-  ${comm}_runcommand "cd '$pwd'" || exit 4
-fi
-if [[ -n "$cmd" ]]; then
-  if type -p "$cmd" &> /dev/null; then
-    if [[ "$hold" == 1 ]]; then
-      ${comm}_runcommand "'$cmd' $args" || exit 4
-    else
-      ${comm}_runcommand "exec '$cmd' $args" || exit 4
-    fi
+### Profile setup
+# Functions to handle profile properties and setup them in the new session
+
+profile_properties=''
+
+function add_profile_setting() {
+  if [[ -z "$profile_properties" ]]; then
+    profile_properties="$1"
   else
-    exit 3
+    profile_properties="$properties;$1"
   fi
-fi
-if [[ -n "$title" ]]; then
-  ${comm}_settitle "$title"
-fi
-if [[ "$now" == 1 ]]; then
-  ${comm}_showwindow
-fi
+}
+
+function profile_setup_command() {
+  type -P konsoleprofile &> /dev/null || echo ''
+  if [[ -n "$profile_properties" ]]; then
+    echo "konsoleprofile $profile_properties"
+  else
+    echo ''
+  fi
+}
+
+### Yakuake IPC
+# A few functions to make it easy to invoke some Yakuake methods
+
+# Detect which IPC technology we have to use to talk to Yakuake
+function detect_ipc_interface() {
+  type -P qdbus &> /dev/null && \
+    qdbus 2> /dev/null | grep -q org.kde.yakuake
+  if [[ "$?" == 0 ]]; then
+    echo dbus
+    return
+  fi
+  type -P dcop &> /dev/null && \
+    dcop 2> /dev/null | grep -q yakuake
+  if [[ "$?" == 0 ]]; then
+    echo dcop
+    return
+  fi
+  echo none
+}
+
+# Initialize IPC to Yakuake
+function init_ipc_interface() {
+  local comm=$(detect_ipc_interface)
+  if [[ "$comm" == none ]]; then
+    type -P yakuake &> /dev/null || error_exit 11 "Yakuake is not installed"
+    yakuake &> /dev/null || error_exit 126 "Yakuake can not be executed: exit with status $?"
+
+    # Try it again
+    comm=$(detect_ipc_interface)
+  fi
+
+  if [[ "$comm" == dbus ]]; then
+    function yakuake_addsession() {
+      qdbus org.kde.yakuake /yakuake/sessions addSession > /dev/null
+    }
+
+    function yakuake_runcommand() {
+      qdbus org.kde.yakuake /yakuake/sessions runCommand "$1" > /dev/null
+    }
+
+    function yakuake_hasinterface() {
+      qdbus org.kde.yakuake /yakuake/MainWindow_1 Introspect | grep -F "<interface name=\"$1\">"
+    }
+
+    function yakuake_settitle() {
+      local id=$(qdbus org.kde.yakuake /yakuake/sessions sessionIdList | tr , "\n" | sort -g | tail -1 | tr -d '\n')
+      qdbus org.kde.yakuake /yakuake/tabs setTabTitle "$id" "$1" 
+    }
+
+    function yakuake_showwindow() {
+      yakuake_hasinterface com.trolltech.Qt.QWidget
+      if [[ "$?" == 0 ]]; then
+        local interface="com.trolltech.Qt.QWidget"
+      else
+        local interface="org.qtproject.Qt.QWidget"
+      fi
+      local ws=$(qdbus org.kde.yakuake /yakuake/MainWindow_1 Get $interface visible)
+      if [[ "$?" == 0 && "$ws" == "false" ]]; then
+        qdbus org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
+      fi
+    }
+  elif [[ "$comm" == dcop ]]; then
+    function yakuake_addsession() {
+      dcop yakuake DCOPInterface slotAddSession > /dev/null
+    }
+
+    function yakuake_runcommand() {
+      dcop yakuake DCOPInterface slotRunCommandInSession "$1" > /dev/null
+    }
+
+    function yakuake_settitle() {
+      warning "set tab title is not yet supported when using DCOP interface"
+    }
+
+    function yakuake_showwindow() {
+      ws=$(dcop yakuake yakuake-mainwindow#1 visible)
+      if [[ "$?" == 0 && "$ws" == false ]]; then
+        dcop yakuake DCOPInterface slotToggleState > /dev/null
+      fi
+    }
+  else
+    error_exit 13 "cannot connect to Yakuake"
+  fi
+}
+
+### Main function
+
+function yakuake_session() {
+  local cwd="$PWD"
+  local title=''
+  local cmd=''
+  local args=''
+  local hold=0
+  local now=1
+  local props=''
+
+  # Parse command line options
+  local opts=$(getopt -n "$(basename "$0")" -o t:e:p:w:hq \
+               -l workdir:,hold,noclose,help -- "$@")
+  eval set -- "$opts"
+  while true; do
+    case "$1" in
+      --help) show_help; exit 0 ;;
+      -w|--workdir) cwd="$2"; shift 2 ;;
+      --hold|--noclose) hold=1; shift ;;
+      -p) add_profile_setting "$2"; shift 2 ;;
+      -e) cmd="$2"; shift 2 ;;
+      -t) title="$2"; shift 2 ;;
+      -h|--homedir) cwd=''; shift ;;
+      -q) now=0; shift ;;
+      --) shift; break ;;
+      *) error_exit 1 "internal error";;
+    esac
+  done
+  for arg do args="$args '$arg'" ; done
+
+  # Create a new Yakuake session
+  init_ipc_interface
+  yakuake_addsession > /dev/null || error_exit 2 'cannot create a new Yakuake session'
+  if [[ -n "$title" ]]; then
+    yakuake_settitle "$title"
+  fi
+  
+  props=$(profile_setup_command)
+  if [[ -n "$props" ]]; then
+    yakuake_runcommand "$props" || exit 4
+  fi
+
+  if [[ -n "$cwd" ]]; then
+    yakuake_runcommand "cd '$pwd'" || exit 4
+  fi
+
+  if [[ -n "$cmd" ]]; then
+    if type -p "$cmd" &> /dev/null; then
+      if [[ "$hold" == 1 ]]; then
+        yakuake_runcommand "'$cmd' $args" || exit 4
+      else
+        yakuake_runcommand "exec '$cmd' $args" || exit 4
+      fi
+    else
+      error_exit 127 "command not found"
+    fi
+  fi
+
+  # Show the window of Yakuake
+  if [[ "$now" == 1 ]]; then
+    yakuake_showwindow
+  fi
+}
+
+yakuake_session "$@"
