@@ -10,9 +10,10 @@
 #
 
 ### Utility functions
-# A few utility functions to show errorsi, handle programa exit and more
+# A few utility functions to show errors, handle programa exit and more
 
 PROGRAM_NAME="$(basename "$0")"
+SESSION_FILE=''
 
 # Show information about how to use this program 
 function show_help() {
@@ -56,16 +57,16 @@ function add_profile_setting() {
 	if [[ -z "$profile_properties" ]]; then
 		profile_properties="$1"
 	else
-		profile_properties="$properties;$1"
+		profile_properties="$profile_properties;$1"
 	fi
 }
 
 function profile_setup_command() {
-	type -P konsoleprofile &> /dev/null || echo ''
+	type -P konsoleprofile &> /dev/null || echo 'true'
 	if [[ -n "$profile_properties" ]]; then
-		echo "konsoleprofile $profile_properties"
+		echo "konsoleprofile '$profile_properties'"
 	else
-		echo ''
+		echo 'true'
 	fi
 }
 
@@ -95,7 +96,7 @@ function init_ipc_interface() {
 	if [[ "$comm" == none ]]; then
 		# Maybe Yakuake is not running. Launch de program and try it again
 		type -P yakuake &> /dev/null ||
-			error_exit 11 "Yakuake is not installed"
+			error_exit 20 "Yakuake is not installed"
 		yakuake &> /dev/null ||
 			error_exit 126 "Yakuake can not be executed: exit with status $?"
 		comm=$(detect_ipc_interface)
@@ -153,7 +154,7 @@ function init_ipc_interface() {
 			fi
 		}
 	else
-		error_exit 13 "cannot connect to Yakuake"
+		error_exit 22 "cannot connect to Yakuake"
 	fi
 }
 
@@ -166,8 +167,7 @@ function yakuake_session() {
 	local args=''
 	local hold=0
 	local now=1
-	local props=''
-  local opts=''
+	local opts=''
 
 	# Parse command line options
 	opts=$(getopt -n "$PROGRAM_NAME" -o t:e:p:w:hq \
@@ -181,44 +181,51 @@ function yakuake_session() {
 			-p) add_profile_setting "$2"; shift 2 ;;
 			-e) cmd="$2"; shift 2 ;;
 			-t) title="$2"; shift 2 ;;
-			-h|--homedir) cwd=''; shift ;;
+			-h|--homedir) cwd="$HOME"; shift ;;
 			-q) now=0; shift ;;
 			--) shift; break ;;
 			*) error_exit 1 "internal error";;
 		esac
 	done
-	for arg do args="$args '$arg'" ; done
- 
+	for arg do args="$args $arg" ; done
+
+	if [[ -n "$cwd" && ! -d "$cwd" ]] ; then
+		error_exit 2 "working directory does not exist"
+	fi
+
+	if [[ -n "$cmd" ]]; then
+		type -P "$cmd" &> /dev/null || error_exit 127 "command not found"
+		if [[ "$hold" == 1 ]]; then
+			cmd="'$cmd' $args"
+		else
+			cmd="exec '$cmd' $args"
+    		fi
+	else
+		cmd='true'
+	fi
+
 	init_ipc_interface
 
 	# Create a new terminal session in Yakuake
 	yakuake_addsession > /dev/null ||
-		error_exit 2 'cannot create a new Yakuake session'
+		error_exit 4 'cannot create a new session in Yakuake'
 	if [[ -n "$title" ]]; then
 		yakuake_settitle "$title"
 	fi
+
+	# Setup the session 
+	SESSION_FILE="$(mktemp --tmpdir "$PROGRAM_NAME-XXXXXXXXXX")"
+
+	cat > "$SESSION_FILE" <<-EOF
+	clear
+	$(profile_setup_command) && cd '$cwd' && $cmd
+	rm -f '$SESSION_FILE' &> /dev/null
+	EOF
+
+	# We put a space before the command to exclude it from history
+	yakuake_runcommand " . '$SESSION_FILE'" ||
+		error_exit 7 'cannot run a command inside the new session'
 	
-	props=$(profile_setup_command)
-	if [[ -n "$props" ]]; then
-		yakuake_runcommand "$props" || exit 4
-	fi
-
-	if [[ -n "$cwd" ]]; then
-		yakuake_runcommand "cd '$pwd'" || exit 4
-	fi
-
-	if [[ -n "$cmd" ]]; then
-		if type -p "$cmd" &> /dev/null; then
-			if [[ "$hold" == 1 ]]; then
-				yakuake_runcommand "'$cmd' $args" || exit 4
-			else
-				yakuake_runcommand "exec '$cmd' $args" || exit 4
-			fi
-		else
-			error_exit 127 "command not found"
-		fi
-	fi
-
 	# Show the window of Yakuake
 	if [[ "$now" == 1 ]]; then
 		yakuake_showwindow
