@@ -218,7 +218,7 @@ function yakuake_session() {
 
 	cat > "$SESSION_FILE" <<-EOF
 	clear
-	$(profile_setup_command) && cd '$cwd' && $cmd
+	$(profile_setup_command) && cd `printf %q "$cwd"` && $cmd
 	rm -f '$SESSION_FILE' &> /dev/null
 	EOF
 
