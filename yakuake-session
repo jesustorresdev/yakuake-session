@@ -232,4 +232,10 @@ function yakuake_session() {
 	fi
 }
 
-yakuake_session "$@"
+# Detect if the script was called with a different user who logged in
+logged_user=$(logname)
+if [[ "$UID" == 0 && "$logged_user" != "$USER" ]]; then
+	su -c "$0 $*" "$logged_user"
+else
+	yakuake_session "$@"
+fi
