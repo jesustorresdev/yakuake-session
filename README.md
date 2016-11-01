@@ -1,5 +1,5 @@
 yakuake-session - A script to create new yakuake sessions from command-line.<br />
-Copyright 2010-2015 Jesús Torres <jmtorres@ull.es>
+Copyright 2010-2016 Jesús Torres <jmtorres@ull.es>
 
 ## What is yakuake-session?
 
@@ -106,7 +106,10 @@ emulator in the specified folder. This behavior can be changed to use Yakuake
 instead of Konsole coping `konsolehere.desktop` into KDE Service Menus. 
 
 ```
+# KDE 4
 cp ServiceMenus/konsolehere.desktop ~/.kde/share/kde4/services/ServiceMenus/
+# KDE 5
+cp ServiceMenus/konsolehere.desktop ~/.local/share/kservices5/ServiceMenus/
 ```
 
 If we do not want to change the behavior of "Open terminal here", then copy
@@ -114,7 +117,10 @@ If we do not want to change the behavior of "Open terminal here", then copy
 Dolphin.
 
 ```
-cp ServiceMenus/yakuakehere.desktop ~/.kde/share/kde4/services/ServiceMenus/ 
+# KDE 4
+cp ServiceMenus/yakuakehere.desktop ~/.kde/share/kde4/services/ServiceMenus/
+# KDE 5
+cp ServiceMenus/yakuakehere.desktop ~/.local/share/kservices5/ServiceMenus/
 ```
 
 ## Quick Access Menu
