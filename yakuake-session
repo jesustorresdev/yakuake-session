@@ -2,7 +2,7 @@
 #
 # yakuake-session - A script to create new Yakuake sessions from command-line.
 #
-# Copyright 2010-2015 Jesús Torres <jmtorres@ull.es>
+# Copyright 2010-2017 Jesús Torres <jmtorres@ull.es>
 #
 # yakuake-session comes with ABSOLUTELY NO WARRANTY; for details see COPYING.
 # This is free software, and you are welcome to redistribute it
@@ -27,12 +27,12 @@ function show_help() {
 	  -w, --workdir <dir>       Set the working directory of the new tab to 'dir'
 	  --hold, --noclose         Do not close the session automatically when the command ends.
 	  -p <property=value>       Change the value of a profile property (only for KDE 4).
-	  -e <cmd>                  Command to execute.
 	  -q                        Do not open yakuake window.
 	  -t <title>                Set the title of the new tab
+	  -e <cmd>                  Command to execute. This option will catch all following arguments, so use it as the last option.
 
 	Arguments:
-	  args                      Arguments passed to command.
+	  args                      Arguments passed to command (for use with -e).
 	EOF
 }
 
@@ -164,42 +164,75 @@ function yakuake_session() {
 	local cwd="$PWD"
 	local title=''
 	local cmd=''
-	local args=''
 	local hold=0
 	local now=1
-	local opts=''
 
 	# Parse command line options
-	opts=$(getopt -n "$PROGRAM_NAME" -o t:e:p:w:hq \
-		-l workdir:,hold,noclose,help -- "$@")
-	eval set -- "$opts"
-	while true; do
-		case "$1" in
-			--help) show_help; exit 0 ;;
-			-w|--workdir) cwd="$2"; shift 2 ;;
-			--hold|--noclose) hold=1; shift ;;
-			-p) add_profile_setting "$2"; shift 2 ;;
-			-e) cmd="$2"; shift 2 ;;
-			-t) title="$2"; shift 2 ;;
-			-h|--homedir) cwd="$HOME"; shift ;;
-			-q) now=0; shift ;;
-			--) shift; break ;;
-			*) error_exit 1 "internal error";;
-		esac
+	local option=''
+	local OPTIND=1
+	local OPTARG=''
+
+	while getopts ":-:t:p:w:heq" option; do
+		case $option in
+			-)
+				case "$OPTARG" in
+					help)
+						show_help
+						exit 0
+						;;
+					homedir)
+						cwd="$HOME"
+						;;
+					workdir)
+						cwd="${!OPTIND}"
+						[[ "$cwd" == -* ]] && error_exit 1 "missing argument for option '$OPTARG'."
+						OPTIND=$(($OPTIND + 1))
+						;;
+					workdir=*)
+						cwd="${OPTARG#*=}"
+						;;
+					hold|noclose)
+						hold=1;
+						;;
+					*)
+						error_exit 1 "unknown option '$OPTARG'."
+						;;
+				esac
+				;;
+			p)
+				add_profile_setting "$OPTARG"
+				;;
+			e)
+				shift $((OPTIND-1))
+				cmd=$(printf '%q ' "$@")
+				break
+				;;
+			t)
+				title="$OPTARG"
+				;;
+			h)
+				cwd="$HOME"
+				;;
+			q)
+				now=0
+				;;
+			\?)
+				error_exit 1 "unknown option '$OPTARG'."
+				;;
+			:)
+				error_exit 1 "missing argument for option '$OPTARG'."
+				;;
+			esac
 	done
-	for arg do args="$args $arg" ; done
 
 	if [[ -n "$cwd" && ! -d "$cwd" ]] ; then
 		error_exit 2 "working directory does not exist"
 	fi
 
 	if [[ -n "$cmd" ]]; then
-		type -P "$cmd" &> /dev/null || error_exit 127 "command not found"
-		if [[ "$hold" == 1 ]]; then
-			cmd="'$cmd' $args"
-		else
-			cmd="exec '$cmd' $args"
-    		fi
+		if [[ "$hold" == 0 ]]; then
+			cmd="exec $cmd"
+		fi
 	else
 		cmd='true'
 	fi
