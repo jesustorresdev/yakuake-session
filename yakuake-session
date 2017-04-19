@@ -172,7 +172,7 @@ function yakuake_session() {
 	local OPTIND=1
 	local OPTARG=''
 
-	while getopts ":-:t:p:w:heq" option; do
+	while getopts ":-:t:p:w:he:q" option; do
 		case $option in
 			-)
 				case "$OPTARG" in
@@ -204,7 +204,7 @@ function yakuake_session() {
 				add_profile_setting "$OPTARG"
 				;;
 			e)
-				shift $((OPTIND-1))
+				shift $((OPTIND-2))
 				cmd=$(printf '%q ' "$@")
 				break
 				;;
