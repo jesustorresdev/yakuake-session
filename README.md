@@ -1,5 +1,5 @@
 yakuake-session - A script to create new yakuake sessions from command-line.<br />
-Copyright 2010-2016 Jesús Torres <jmtorres@ull.es>
+Copyright 2010-2016 Jesús Torres \<jmtorres@ull.es\>
 
 ## What is yakuake-session?
 
@@ -138,4 +138,4 @@ The file `examples/username@example.com.desktop` contains an example that launch
 a ssh client in a new Yakuake session.
 
 
--- Jesús Torres <jmtorres@ull.es>
+-- Jesús Torres \<jmtorres@ull.es\>

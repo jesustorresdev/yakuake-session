@@ -185,7 +185,8 @@ function yakuake_session() {
 						;;
 					workdir)
 						cwd="${!OPTIND}"
-						[[ "$cwd" == -* ]] && error_exit 1 "missing argument for option '$OPTARG'."
+						[[ "$cwd" == -* ]] &&
+							error_exit 1 "missing argument for option '$OPTARG'."
 						OPTIND=$(($OPTIND + 1))
 						;;
 					workdir=*)
@@ -250,9 +251,9 @@ function yakuake_session() {
 	SESSION_FILE="$(mktemp --tmpdir "$PROGRAM_NAME-XXXXXXXXXX")"
 
 	cat > "$SESSION_FILE" <<-EOF
-	clear
-	$(profile_setup_command) && cd `printf %q "$cwd"` && $cmd
-	rm -f '$SESSION_FILE' &> /dev/null
+		clear
+		$(profile_setup_command) && cd $(printf %q "$cwd") && $cmd
+		rm -f '$SESSION_FILE' &> /dev/null
 	EOF
 
 	# We put a space before the command to exclude it from history
