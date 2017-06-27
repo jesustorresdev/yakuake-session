@@ -153,7 +153,7 @@ function init_ipc_interface() {
 
 		function yakuake_showwindow() {
 			local ws=$(yakuake_isvisible)
-			if [[ "$ws" == true ]]; then
+			if [[ "$ws" != false ]]; then
 				qdbus org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
 			fi
 		}
