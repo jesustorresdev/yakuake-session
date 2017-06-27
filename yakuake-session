@@ -111,26 +111,49 @@ function init_ipc_interface() {
 			qdbus org.kde.yakuake /yakuake/sessions runCommand "$1" > /dev/null
 		}
 
-		function yakuake_hasinterface() {
-			qdbus org.kde.yakuake /yakuake/MainWindow_1 Introspect |
-				grep -F "<interface name=\"$1\">"
-		}
-
 		function yakuake_settitle() {
 			local id="$(qdbus org.kde.yakuake /yakuake/sessions sessionIdList |
 				tr , "\n" | sort -g | tail -1 | tr -d '\n')"
 			qdbus org.kde.yakuake /yakuake/tabs setTabTitle "$id" "$1" 
 		}
 
-		function yakuake_showwindow() {
-			yakuake_hasinterface com.trolltech.Qt.QWidget
+		function yakuake_isvisible_by_dbus() {
+			qdbus org.kde.yakuake /yakuake/MainWindow_1 Introspect |
+				grep -F '<interface name="com.trolltech.Qt.QWidget">'
 			if [[ "$?" == 0 ]]; then
 				local interface="com.trolltech.Qt.QWidget"
 			else
 				local interface="org.qtproject.Qt.QWidget"
 			fi
-			local ws="$(qdbus org.kde.yakuake /yakuake/MainWindow_1 Get "$interface" visible)"
-			if [[ "$?" == 0 && "$ws" == "false" ]]; then
+			echo $(qdbus org.kde.yakuake /yakuake/MainWindow_1 Get "$interface" visible)
+		}
+
+		function yakuake_isvisible_by_xprop() {
+			local id=''
+			local ids=$(xprop -root 32x ':$0+' _NET_CLIENT_LIST_STACKING |
+			  cut -d ':' -f2 | tr ',' ' ')
+			for id in $ids; do
+				local wm_class=$(xprop -id $id 8s ':$0+' WM_CLASS | cut -d ':' -f2)
+				if [[ "$wm_class" == '"yakuake", "Yakuake"' ]]; then
+					echo true
+					return
+				fi
+			done
+			echo false
+		}
+
+		function yakuake_isvisible() {
+			qdbus org.kde.yakuake | grep -F '/yakuake/MainWindow_1' > /dev/null
+			if [[ "$?" != 0 ]]; then
+				yakuake_isvisible_by_dbus
+			else
+				yakuake_isvisible_by_xprop
+			fi
+		}
+
+		function yakuake_showwindow() {
+			local ws=$(yakuake_isvisible)
+			if [[ "$ws" == true ]]; then
 				qdbus org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
 			fi
 		}
