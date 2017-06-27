@@ -144,7 +144,7 @@ function init_ipc_interface() {
 
 		function yakuake_isvisible() {
 			qdbus org.kde.yakuake | grep -F '/yakuake/MainWindow_1' > /dev/null
-			if [[ "$?" != 0 ]]; then
+			if [[ "$?" == 0 ]]; then
 				yakuake_isvisible_by_dbus
 			else
 				yakuake_isvisible_by_xprop
