@@ -6,6 +6,7 @@ X-KDE-AuthorizeAction=shell_access
 
 [Desktop Action openYakuakeHere]
 Name=Open Yakuake Here
+Name[ru]=Открыть Yakuake в этой папке
 Name[es]=Abrir Yakuake aquí
 Name[es_ES]=Abrir Yakuake aquí
 Icon=utilities-terminal
