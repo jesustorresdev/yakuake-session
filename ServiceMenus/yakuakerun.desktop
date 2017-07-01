@@ -11,9 +11,9 @@ Exec=yakuake-session --hold -e %f
 Icon=yakuake
 
 Name=Run In Yakuake
-Name[es]=Ejecutar en Konsole
+Name[es]=Ejecutar en Yakuake
 Name[ru]=Запустить в Yakuake
 
 Comment=Run within Yakuake
-Comment[es]=Ejecutar en Konsole
+Comment[es]=Ejecutar en Yakuake
 Comment[ru]=Выполнить команду в Yakuake
