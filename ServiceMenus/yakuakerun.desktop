@@ -1,0 +1,19 @@
+[Desktop Entry]
+Type=Service
+X-KDE-ServiceTypes=KonqPopupMenu/Plugin
+MimeType=application/x-executable;
+Actions=runInYakuake;
+X-KDE-AuthorizeAction=shell_access
+
+[Desktop Action runInYakuake]
+TryExec=konsole
+Exec=yakuake-session --hold -e %f
+Icon=yakuake
+
+Name=Run In Yakuake
+Name[es]=Ejecutar en Konsole
+Name[ru]=Запустить в Yakuake
+
+Comment=Run within Yakuake
+Comment[es]=Ejecutar en Konsole
+Comment[ru]=Выполнить команду в Yakuake
