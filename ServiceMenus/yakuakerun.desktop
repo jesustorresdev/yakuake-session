@@ -6,7 +6,7 @@ Actions=runInYakuake;
 X-KDE-AuthorizeAction=shell_access
 
 [Desktop Action runInYakuake]
-TryExec=konsole
+TryExec=yakuake
 Exec=yakuake-session --hold -e %f
 Icon=yakuake
 
