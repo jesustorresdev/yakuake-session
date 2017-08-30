@@ -5,11 +5,12 @@ Actions=openYakuakeHere;
 X-KDE-AuthorizeAction=shell_access
 
 [Desktop Action openYakuakeHere]
+TryExec=yakuake
+Exec=yakuake-session --workdir %f
+Icon=yakuake
+X-Ubuntu-Gettext-Domain=desktop_kdebase
+
 Name=Open Yakuake Here
 Name[ru]=Открыть Yakuake в этой папке
 Name[es]=Abrir Yakuake aquí
 Name[es_ES]=Abrir Yakuake aquí
-Icon=utilities-terminal
-Exec=yakuake-session --workdir %f
-#Exec=$HOME/.kde/share/kde4/services/ServiceMenus/yakuake-session --workdir %f
-X-Ubuntu-Gettext-Domain=desktop_kdebase
