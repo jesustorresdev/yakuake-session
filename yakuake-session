@@ -270,13 +270,18 @@ function yakuake_session() {
 		yakuake_settitle "$title"
 	fi
 
-	# Setup the session 
+	# Setup the session
 	SESSION_FILE="$(mktemp --tmpdir "$PROGRAM_NAME-XXXXXXXXXX")"
+	SH_SESSION_SCRIPT="$(mktemp --tmpdir "$PROGRAM_NAME-XXXXXXXXXX.sh")"
+
+	cat > "$SH_SESSION_SCRIPT" <<-EOF
+		rm -f '$SESSION_FILE' '$SH_SESSION_SCRIPT' >/dev/null 2>&1
+		$(profile_setup_command) && cd $(printf %q "$cwd") && $cmd
+	EOF
 
 	cat > "$SESSION_FILE" <<-EOF
 		clear
-		$(profile_setup_command) && cd $(printf %q "$cwd") && $cmd
-		rm -f '$SESSION_FILE' &> /dev/null
+		exec sh '$SH_SESSION_SCRIPT'
 	EOF
 
 	# We put a space before the command to exclude it from history
