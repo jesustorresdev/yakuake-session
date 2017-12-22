@@ -275,9 +275,6 @@ function yakuake_session() {
 	# Create a new terminal session in Yakuake
 	yakuake_addsession > /dev/null ||
 		error_exit 4 'cannot create a new session in Yakuake'
-	if [[ -n "$title" ]]; then
-		yakuake_settitle "$title"
-	fi
 
 	# Setup the session
 	SESSION_FILE="$(mktemp --tmpdir "$PROGRAM_NAME-XXXXXXXXXX")"
@@ -292,6 +289,10 @@ function yakuake_session() {
 	# We put a space before the command to exclude it from history
 	yakuake_runcommand " . '$SESSION_FILE'" ||
 		error_exit 7 'cannot run a command inside the new session'
+
+    if [[ -n "$title" ]]; then
+		yakuake_settitle "$title"
+	fi
 
 	# Show the window of Yakuake
 	if [[ "$now" == 1 ]]; then
