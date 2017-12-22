@@ -15,7 +15,7 @@
 PROGRAM_NAME="$(basename "$0")"
 SESSION_FILE=''
 
-# Show information about how to use this program 
+# Show information about how to use this program
 function show_help() {
 	cat <<-EOF
 
@@ -114,7 +114,7 @@ function init_ipc_interface() {
 		function yakuake_settitle() {
 			local id="$(qdbus org.kde.yakuake /yakuake/sessions sessionIdList |
 				tr , "\n" | sort -g | tail -1 | tr -d '\n')"
-			qdbus org.kde.yakuake /yakuake/tabs setTabTitle "$id" "$1" 
+			qdbus org.kde.yakuake /yakuake/tabs setTabTitle "$id" "$1"
 		}
 
 		function yakuake_isvisible_by_dbus() {
@@ -275,14 +275,16 @@ function yakuake_session() {
 
 	cat > "$SESSION_FILE" <<-EOF
 		clear
-		rm -f '$SESSION_FILE' >/dev/null 2>&1
-		sh -c '$(profile_setup_command) && cd $(printf %q "$cwd") && $cmd'
+        rm -f '$SESSION_FILE' >/dev/null 2>&1
+    	$(profile_setup_command)
+    	cd $(printf %q "$cwd")
+    	$cmd
 	EOF
 
 	# We put a space before the command to exclude it from history
 	yakuake_runcommand " . '$SESSION_FILE'" ||
 		error_exit 7 'cannot run a command inside the new session'
-	
+
 	# Show the window of Yakuake
 	if [[ "$now" == 1 ]]; then
 		yakuake_showwindow
