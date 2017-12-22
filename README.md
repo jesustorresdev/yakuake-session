@@ -16,6 +16,8 @@ of Konsole.
 breaks the command `qdbus` in Kubuntu 13.04/13.10. It can be fixed installing
 `qt4-default` package.
 
+ * Requires wmctrl to change focus if yakuake is already open. Get it from the repo e.g. `apt install wmctrl`
+
 ## Installation
 
 Clone this repository.
@@ -41,7 +43,7 @@ $ yakuake-session
 ```
 
 Without arguments, yakuake-session creates a new session in the currently
-running Yakuake terminal emulator. 
+running Yakuake terminal emulator.
 
 The option `-e` allows to indicate a command to execute in the new session.
 
@@ -103,7 +105,7 @@ Arguments:
 
 Dolphin provides the action "Open terminal here" that opens a Konsole terminal
 emulator in the specified folder. This behavior can be changed to use Yakuake
-instead of Konsole coping `konsolehere.desktop` into KDE Service Menus. 
+instead of Konsole coping `konsolehere.desktop` into KDE Service Menus.
 
 ```
 # KDE 4
