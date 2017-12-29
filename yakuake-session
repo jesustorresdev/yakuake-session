@@ -94,6 +94,7 @@ function detect_ipc_interface() {
 function init_ipc_interface() {
 	local comm=$(detect_ipc_interface)
 	if [[ "$comm" == none ]]; then
+
 		# Maybe Yakuake is not running. Launch de program and try it again
 		type -P yakuake &> /dev/null ||
 			error_exit 20 "Yakuake is not installed"
@@ -117,56 +118,53 @@ function init_ipc_interface() {
 			qdbus org.kde.yakuake /yakuake/tabs setTabTitle "$id" "$1"
 		}
 
-		function yakuake_isvisible_by_dbus() {
-			qdbus org.kde.yakuake /yakuake/MainWindow_1 Introspect |
-				grep -F '<interface name="com.trolltech.Qt.QWidget">'
-			if [[ "$?" == 0 ]]; then
-				local interface="com.trolltech.Qt.QWidget"
-			else
-				local interface="org.qtproject.Qt.QWidget"
-			fi
-			echo $(qdbus org.kde.yakuake /yakuake/MainWindow_1 Get "$interface" visible)
-		}
+		# Check if we can handle the Yakuake main window using DBUS
+		qdbus org.kde.yakuake | grep -F '/yakuake/MainWindow_1' > /dev/null
+		if [[ "$?" == 0 ]]; then
 
-		function yakuake_isvisible_by_xprop() {
-			local id=''
-			local ids=$(xprop -root 32x ':$0+' _NET_CLIENT_LIST_STACKING |
-			  cut -d ':' -f2 | tr ',' ' ')
-			for id in $ids; do
-				local wm_class=$(xprop -id $id 8s ':$0+' WM_CLASS | cut -d ':' -f2)
-				if [[ "${wm_class,,}" == '"yakuake", "yakuake"' ]]; then
-					echo true
-					return
+			function yakuake_showwindow() {
+				qdbus org.kde.yakuake /yakuake/MainWindow_1 Introspect |
+					grep -F '<interface name="com.trolltech.Qt.QWidget">' > /dev/null
+				if [[ "$?" == 0 ]]; then
+					local interface="com.trolltech.Qt.QWidget"
+				else
+					local interface="org.qtproject.Qt.QWidget"
 				fi
-			done
-			echo false
-		}
+				local ws=$(qdbus org.kde.yakuake /yakuake/MainWindow_1 Get "$interface" visible)
+				if [[ "$ws" == true ]]; then
+					qdbus org.kde.yakuake /yakuake/MainWindow_1 setFocus > /dev/null
+				else
+					qdbus org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
+				fi
+			}
 
-		function yakuake_isvisible() {
-			qdbus org.kde.yakuake | grep -F '/yakuake/MainWindow_1' > /dev/null
-			if [[ "$?" == 0 ]]; then
-				yakuake_isvisible_by_dbus
-			else
-				yakuake_isvisible_by_xprop
-			fi
-		}
+		else
 
-		function yakuake_showwindow() {
-			local ws=$(yakuake_isvisible)
-			if [[ "$ws" != true ]]; then
-				qdbus org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
-			else
-				local ids=$(xprop -root 32x ':$0+' _NET_CLIENT_LIST_STACKING | cut -d ':' -f2 | tr ',' ' ')
-				for id in $ids; do
-					local wm_class=$(xprop -id $id 8s ':$0+' WM_CLASS | cut -d ':' -f2)
+			function yakuake_get_window_id() {
+				local wid=''
+				local wids=$(xprop -root 32x ':$0+' _NET_CLIENT_LIST_STACKING |
+					cut -d ':' -f2 | tr ',' ' ')
+				for wid in $wids; do
+					local wm_class=$(xprop -id $wid 8s ':$0+' WM_CLASS | cut -d ':' -f2)
 					if [[ "${wm_class,,}" == '"yakuake", "yakuake"' ]]; then
-						wmctrl -i -a $id
-						return
+						break
 					fi
 				done
-			fi
-		}
+				echo $wid
+			}
+
+			function yakuake_showwindow() {
+				local wid=$(yakuake_get_window_id)
+				if [[ -z "$wid" ]]; then
+					qdbus org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
+				else
+					wmctrl -i -a $wid
+				fi
+			}
+		fi
+
 	elif [[ "$comm" == dcop ]]; then
+
 		function yakuake_addsession() {
 			dcop yakuake DCOPInterface slotAddSession > /dev/null
 		}
@@ -180,11 +178,12 @@ function init_ipc_interface() {
 		}
 
 		function yakuake_showwindow() {
-			ws="$(dcop yakuake yakuake-mainwindow#1 visible)"
+			ws="$(dcop yakuake 'yakuake-mainwindow#1' visible)"
 			if [[ "$?" == 0 && "$ws" == false ]]; then
 				dcop yakuake DCOPInterface slotToggleState > /dev/null
 			fi
 		}
+
 	else
 		error_exit 22 "cannot connect to Yakuake"
 	fi
