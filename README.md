@@ -16,7 +16,8 @@ of Konsole.
 breaks the command `qdbus` in Kubuntu 13.04/13.10. It can be fixed installing
 `qt4-default` package.
 
- * Requires wmctrl to change focus if yakuake is already open. Get it from the repo e.g. `apt install wmctrl`
+ * Requires wmctrl to change focus if yakuake is already open. Get it from the
+repo e.g. `apt install wmctrl`
 
 ## Installation
 

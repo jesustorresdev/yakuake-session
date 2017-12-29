@@ -155,15 +155,15 @@ function init_ipc_interface() {
 			local ws=$(yakuake_isvisible)
 			if [[ "$ws" != true ]]; then
 				qdbus org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
-    		else
-    		    local ids=$(xprop -root 32x ':$0+' _NET_CLIENT_LIST_STACKING | cut -d ':' -f2 | tr ',' ' ')
-			    for id in $ids; do
-				    local wm_class=$(xprop -id $id 8s ':$0+' WM_CLASS | cut -d ':' -f2)
-				    if [[ "${wm_class,,}" == '"yakuake", "yakuake"' ]]; then
-                        wmctrl -i -a $id
-                        return
-                    fi
-                done
+			else
+				local ids=$(xprop -root 32x ':$0+' _NET_CLIENT_LIST_STACKING | cut -d ':' -f2 | tr ',' ' ')
+				for id in $ids; do
+					local wm_class=$(xprop -id $id 8s ':$0+' WM_CLASS | cut -d ':' -f2)
+					if [[ "${wm_class,,}" == '"yakuake", "yakuake"' ]]; then
+						wmctrl -i -a $id
+						return
+					fi
+				done
 			fi
 		}
 	elif [[ "$comm" == dcop ]]; then
@@ -281,16 +281,17 @@ function yakuake_session() {
 
 	cat > "$SESSION_FILE" <<-EOF
 		clear
-        rm -f '$SESSION_FILE' >/dev/null 2>&1
-    	$(profile_setup_command)
-    	cd $(printf %q "$cwd")
-    	$cmd
+		rm -f '$SESSION_FILE' >/dev/null 2>&1
+		$(profile_setup_command)
+		cd $(printf %q "$cwd")
+		$cmd
 	EOF
+
 	# We put a space before the command to exclude it from history
 	yakuake_runcommand " . '$SESSION_FILE'" ||
 		error_exit 7 'cannot run a command inside the new session'
 
-    if [[ -n "$title" ]]; then
+	if [[ -n "$title" ]]; then
 		yakuake_settitle "$title"
 	fi
 
