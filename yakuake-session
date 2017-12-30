@@ -104,6 +104,9 @@ function init_ipc_interface() {
 	fi
 
 	if [[ "$comm" == dbus ]]; then
+		type -P wmctrl &> /dev/null ||
+			error_exit 21 "wmctrl is not installed"
+
 		function yakuake_addsession() {
 			qdbus org.kde.yakuake /yakuake/sessions addSession > /dev/null
 		}
@@ -118,50 +121,14 @@ function init_ipc_interface() {
 			qdbus org.kde.yakuake /yakuake/tabs setTabTitle "$id" "$1"
 		}
 
-		# Check if we can handle the Yakuake main window using DBUS
-		qdbus org.kde.yakuake | grep -F '/yakuake/MainWindow_1' > /dev/null
-		if [[ "$?" == 0 ]]; then
-
-			function yakuake_showwindow() {
-				qdbus org.kde.yakuake /yakuake/MainWindow_1 Introspect |
-					grep -F '<interface name="com.trolltech.Qt.QWidget">' > /dev/null
-				if [[ "$?" == 0 ]]; then
-					local interface="com.trolltech.Qt.QWidget"
-				else
-					local interface="org.qtproject.Qt.QWidget"
-				fi
-				local ws=$(qdbus org.kde.yakuake /yakuake/MainWindow_1 Get "$interface" visible)
-				if [[ "$ws" == true ]]; then
-					qdbus org.kde.yakuake /yakuake/MainWindow_1 setFocus > /dev/null
-				else
-					qdbus org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
-				fi
-			}
-
-		else
-
-			function yakuake_get_window_id() {
-				local wid=''
-				local wids=$(xprop -root 32x ':$0+' _NET_CLIENT_LIST_STACKING |
-					cut -d ':' -f2 | tr ',' ' ')
-				for wid in $wids; do
-					local wm_class=$(xprop -id $wid 8s ':$0+' WM_CLASS | cut -d ':' -f2)
-					if [[ "${wm_class,,}" == '"yakuake", "yakuake"' ]]; then
-						break
-					fi
-				done
-				echo $wid
-			}
-
-			function yakuake_showwindow() {
-				local wid=$(yakuake_get_window_id)
-				if [[ -z "$wid" ]]; then
-					qdbus org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
-				else
-					wmctrl -i -a $wid
-				fi
-			}
-		fi
+		function yakuake_showwindow() {
+			local wid=$(wmctrl -xl | grep -iF 'yakuake.yakuake' | head -n1 | cut -d' ' -f1)
+			if [[ -z "$wid" ]]; then
+				qdbus org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
+			else
+				wmctrl -i -a $wid
+			fi
+		}
 
 	elif [[ "$comm" == dcop ]]; then
 
