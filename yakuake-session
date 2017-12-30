@@ -36,16 +36,34 @@ function show_help() {
 	EOF
 }
 
-# Show an error message and end the program
-function error_exit() {
-	echo "$PROGRAM_NAME: error: ${2:-"unknown error"}" 1>&2
-	exit "${1:-1}"
+# Functions to show error and warning messages
+if type -P kdialog &> /dev/null; then
+
+	function error_exit() {
+		kdialog ${WINDOWID:+--attach $WINDOWID} \
+			--title "$PROGRAM_NAME error" \
+			--error "$PROGRAM_NAME error: ${2:-'unknown error'}."
+		exit "${1:-1}"
+	}
+
+	function warning() {
+		kdialog ${WINDOWID:+--attach $WINDOWID} \
+			--title "$PROGRAM_NAME warning" \
+			--sorry "$PROGRAM_NAME warning: ${1:-'unknown error'}"
 }
 
-# Show a warning message
-function warning() {
-	echo "$PROGRAM_NAME: warning: ${1:-"unknown error"}" 1>&2
-}
+else
+
+	function error_exit() {
+		echo "$PROGRAM_NAME: error: ${2:-'unknown error'}" 1>&2
+		exit "${1:-1}"
+	}
+
+	function warning() {
+		echo "$PROGRAM_NAME: warning: ${1:-'unknown error'}" 1>&2
+	}
+
+fi
 
 ### Profile setup
 # Functions to handle terminal profile properties and setup
