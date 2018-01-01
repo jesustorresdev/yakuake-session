@@ -265,14 +265,18 @@ function yakuake_session() {
 
 	cat > "$SESSION_FILE" <<-EOF
 		clear
-		rm -f '$SESSION_FILE' >/dev/null 2>&1
+		rm -f '$SESSION_FILE' 2>/dev/null
 		$(profile_setup_command)
-		cd $(printf %q "$cwd")
-		$cmd
+		if [ -z "\$FISH_VERSION" ]; then
+			cd $(printf %q "$cwd") && $cmd
+		else
+			cd $(printf %q "$cwd"); and $cmd
+		fi
 	EOF
 
-	# We put a space before the command to exclude it from history
-	yakuake_runcommand " . '$SESSION_FILE'" ||
+	# We use souce builtin instead of '.' because of fish shell and
+	# we put a space before to exclude it from history.
+	yakuake_runcommand " source '$SESSION_FILE'" ||
 		error_exit 7 'cannot run a command inside the new session'
 
 	if [[ -n "$title" ]]; then
