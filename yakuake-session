@@ -294,3 +294,5 @@ if [[ "$UID" == 0 && "$logged_user" != "$USER" ]]; then
 else
 	yakuake_session "$@"
 fi
+
+# vim: set ts=2 sw=2 tw=0 noet :
