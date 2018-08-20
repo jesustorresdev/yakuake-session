@@ -14,6 +14,8 @@
 
 PROGRAM_NAME="$(basename "$0")"
 SESSION_FILE=''
+FISH_SCRIPT=false
+VERBOSE=false
 
 # Show information about how to use this program
 function show_help() {
@@ -30,6 +32,8 @@ function show_help() {
 	  -q                        Do not open yakuake window.
 	  -t <title>                Set the title of the new tab
 	  -e <cmd>                  Command to execute. This option will catch all following arguments, so use it as the last option.
+	  --fish                    Toggle to fix the issues with fish shell
+	  --verbose                 Show yakuake_session debug information.
 
 	Arguments:
 	  args                      Arguments passed to command (for use with -e).
@@ -111,6 +115,9 @@ function detect_ipc_interface() {
 # Initialize IPC interface to Yakuake
 function init_ipc_interface() {
 	local comm=$(detect_ipc_interface)
+	if [ VERBOSE ] ; then
+		echo "Detected IPC interface: $comm"
+	fi
 	if [[ "$comm" == none ]]; then
 
 		# Maybe Yakuake is not running. Launch de program and try it again
@@ -211,6 +218,12 @@ function yakuake_session() {
 					hold|noclose)
 						hold=1;
 						;;
+					fish)
+						FISH_SCRIPT=true
+						;;
+					verbose)
+						VERBOSE=true
+						;;
 					*)
 						error_exit 1 "unknown option '$OPTARG'."
 						;;
@@ -242,6 +255,15 @@ function yakuake_session() {
 			esac
 	done
 
+	if [ VERBOSE ] ; then
+		echo "Verbose mode active"
+		echo "title: $title"
+		echo "cwd: $cwd"
+		echo "hold: $hold"
+		echo "now: $now"
+		echo "fish hack enabled: $FISH_SCRIPT"
+	fi
+
 	if [[ -n "$cwd" && ! -d "$cwd" ]] ; then
 		error_exit 2 "working directory does not exist"
 	fi
@@ -253,6 +275,10 @@ function yakuake_session() {
 	else
 		cmd='true'
 	fi
+	
+	if [ VERBOSE ] ; then
+		echo "cmd: $cmd"
+	fi
 
 	init_ipc_interface
 
@@ -263,18 +289,32 @@ function yakuake_session() {
 	# Setup the session
 	SESSION_FILE="$(mktemp --tmpdir "$PROGRAM_NAME-XXXXXXXXXX")"
 
-	cat > "$SESSION_FILE" <<-EOF
-		#!/bin/bash
-		clear
-		rm -f '$SESSION_FILE' 2>/dev/null
-		$(profile_setup_command)
-		cd $(printf %q "$cwd") && $cmd
+	if [ FISH_SCRIPT ] ; then
+		cat > "$SESSION_FILE" <<-EOF
+			#!/usr/bin/env fish
+			clear
+			rm -f '$SESSION_FILE' 2>/dev/null
+			$(profile_setup_command)
+			cd $(printf %q "$cwd"); and $cmd
+		EOF
+	else
+		cat > "$SESSION_FILE" <<-EOF
+			#!/bin/bash
+			clear
+			rm -f '$SESSION_FILE' 2>/dev/null
+			$(profile_setup_command)
+			cd $(printf %q "$cwd") && $cmd
+		EOF
+	fi
 
-	EOF
+	if [ VERBOSE ] ; then
+		echo "Session file:"
+		cat $SESSION_FILE
+	fi
 
 	# We use souce builtin instead of '.' because of fish shell and
 	# we put a space before to exclude it from history.
-	yakuake_runcommand "bash '$SESSION_FILE'" ||
+	yakuake_runcommand " source '$SESSION_FILE'" ||
 		error_exit 7 'cannot run a command inside the new session'
 
 	if [[ -n "$title" ]]; then
