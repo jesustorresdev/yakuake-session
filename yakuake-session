@@ -279,6 +279,7 @@ function yakuake_session() {
 	yakuake_runcommand " source '$SESSION_FILE'" ||
 		error_exit 7 'cannot run a command inside the new session'
 
+	# Overwrite session title after run command
 	if [[ -n "$title" ]]; then
 		yakuake_settitle "$title"
 	fi
