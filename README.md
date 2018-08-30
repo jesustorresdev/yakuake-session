@@ -19,6 +19,11 @@ breaks the command `qdbus` in Kubuntu 13.04/13.10. It can be fixed installing
  * Requires wmctrl to change focus if yakuake is already open. Get it from the
 repo e.g. `apt install wmctrl`
 
+ * Fish is not a POSIX compliant shell, so yakuake_session detects if it is the
+user default shell and applies some fixes. If the autodetection doesn't work
+properly, open the script and set the variable FISH_SHELL in the first lines to
+1 to apply the fixes unconditionally.
+
 ## Installation
 
 Clone this repository.
@@ -94,12 +99,14 @@ Options:
   -w, --workdir <dir>       Set the working directory of the new tab to 'dir'
   --hold, --noclose         Do not close the session automatically when the command ends.
   -p <property=value>       Change the value of a profile property (only for KDE 4).
-  -e <cmd>                  Command to execute.
   -q                        Do not open yakuake window.
   -t <title>                Set the title of the new tab
+  -e <cmd>                  Command to execute. This option will catch all following arguments, so use it as the last option.
+  --fish | --nofish         Override default shell autodetection to enable or disable the fish shell support.
+  --debug                   Show yakuake_session debug information.
 
 Arguments:
-  args                      Arguments passed to command.
+  args                      Arguments passed to command (for use with -e).
 ```
 
 ## Action in Dolphin

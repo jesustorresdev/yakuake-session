@@ -9,12 +9,15 @@
 # under certain conditions; see COPYING for details.
 #
 
+FISH_SHELL= # Set to 1 to override the fish shell autodetection
+if [[ -z "$FISH_SHELL" ]]; then
+	[[ "$SHELL" == */fish ]] && FISH_SHELL=1 || FISH_SHELL=0
+fi
+
 ### Utility functions
 # A few utility functions to show errors, handle programa exit and more
 
 PROGRAM_NAME="$(basename "$0")"
-SESSION_FILE=''
-FISH_SCRIPT=false
 DEBUG=
 
 # Show information about how to use this program
@@ -32,7 +35,7 @@ function show_help() {
 	  -q                        Do not open yakuake window.
 	  -t <title>                Set the title of the new tab
 	  -e <cmd>                  Command to execute. This option will catch all following arguments, so use it as the last option.
-	  --fish                    Toggle to fix the issues with fish shell
+	  --fish | --nofish         Override default shell autodetection to enable or disable the fish shell support.
 	  --debug                   Show yakuake_session debug information.
 
 	Arguments:
@@ -230,7 +233,10 @@ function yakuake_session() {
 						hold=1;
 						;;
 					fish)
-						FISH_SCRIPT=true
+						FISH_SHELL=1
+						;;
+					nofish)
+						FISH_SHELL=0
 						;;
 					debug)
 						DEBUG=1
@@ -271,7 +277,7 @@ function yakuake_session() {
 		
 			PROGRAM_NAME=$PROGRAM_NAME
 			DEBUG=$DEBUG
-			FISH_SCRIPT=$FISH_SCRIPT
+			FISH_SHELL=$FISH_SHELL
 		
 			title=$title
 			cwd=$cwd
@@ -279,7 +285,7 @@ function yakuake_session() {
 			show=$show
 	EOF
 
-	if [[ -n "$cwd" && ! -d "$cwd" ]] ; then
+	if [[ -n "$cwd" && ! -d "$cwd" ]]; then
 		error_exit 2 "working directory does not exist"
 	fi
 
@@ -295,7 +301,7 @@ function yakuake_session() {
 		cmd='true'
 	fi
 	debug "Command checked: cmd=$cmd"
-
+	
 	init_ipc_interface
 
 	# Create a new terminal session in Yakuake
@@ -303,25 +309,19 @@ function yakuake_session() {
 		error_exit 4 'cannot create a new session in Yakuake'
 
 	# Setup the session
-	SESSION_FILE="$(mktemp --tmpdir "$PROGRAM_NAME-XXXXXXXXXX")"
-
-	if [ FISH_SCRIPT ] ; then
-		cat > "$SESSION_FILE" <<-EOF
-			#!/usr/bin/env fish
-			clear
-			rm -f '$SESSION_FILE' 2>/dev/null
-			$(profile_setup_command)
-			cd  and $cmd
-		EOF
+	if [ "$FISH_SHELL" == 1 ]; then
+		AND_OP='and'
 	else
-		cat > "$SESSION_FILE" <<-EOF
-			#!/bin/bash
-			clear
-			rm -f '$SESSION_FILE' 2>/dev/null
-			$(profile_setup_command)
-			cd $(printf %q "$cwd") && $cmd
-		EOF
+		AND_OP='&&'
 	fi
+
+	SESSION_FILE="$(mktemp --tmpdir "$PROGRAM_NAME-XXXXXXXXXX")"
+	cat > "$SESSION_FILE" <<-EOF
+		clear
+		rm -f '$SESSION_FILE' 2>/dev/null
+		$(profile_setup_command)
+		cd $cwd $AND_OP $cmd
+	EOF
 
 	debug <<-EOF
 		Session file: $SESSION_FILE
