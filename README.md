@@ -1,5 +1,5 @@
 yakuake-session - A script to create new yakuake sessions from command-line.<br />
-Copyright 2010-2017 Jesús Torres \<jmtorres@ull.es\>
+Copyright 2010-2018 Jesús Torres \<jmtorres@ull.es\>
 
 ## What is yakuake-session?
 

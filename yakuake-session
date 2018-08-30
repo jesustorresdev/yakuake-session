@@ -2,7 +2,7 @@
 #
 # yakuake-session - A script to create new Yakuake sessions from command-line.
 #
-# Copyright 2010-2017 Jesús Torres <jmtorres@ull.es>
+# Copyright 2010-2018 Jesús Torres <jmtorres@ull.es>
 #
 # yakuake-session comes with ABSOLUTELY NO WARRANTY; for details see COPYING.
 # This is free software, and you are welcome to redistribute it
@@ -15,7 +15,7 @@
 PROGRAM_NAME="$(basename "$0")"
 SESSION_FILE=''
 FISH_SCRIPT=false
-VERBOSE=false
+DEBUG=
 
 # Show information about how to use this program
 function show_help() {
@@ -33,7 +33,7 @@ function show_help() {
 	  -t <title>                Set the title of the new tab
 	  -e <cmd>                  Command to execute. This option will catch all following arguments, so use it as the last option.
 	  --fish                    Toggle to fix the issues with fish shell
-	  --verbose                 Show yakuake_session debug information.
+	  --debug                   Show yakuake_session debug information.
 
 	Arguments:
 	  args                      Arguments passed to command (for use with -e).
@@ -46,27 +46,40 @@ if type -P kdialog &> /dev/null; then
 	function error_exit() {
 		kdialog ${WINDOWID:+--attach $WINDOWID} \
 			--title "$PROGRAM_NAME error" \
-			--error "$PROGRAM_NAME error: ${2:-'unknown error'}."
+			--error "${2:-'unkshown error'}."
 		exit "${1:-1}"
 	}
 
 	function warning() {
 		kdialog ${WINDOWID:+--attach $WINDOWID} \
 			--title "$PROGRAM_NAME warning" \
-			--sorry "$PROGRAM_NAME warning: ${1:-'unknown error'}"
-}
+			--sorry "${1:-'unkshown error'}"
+	}
+
+	function debug() {
+		if [ -n "$DEBUG" ]; then
+			kdialog ${WINDOWID:+--attach $WINDOWID} \
+				--title "$PROGRAM_NAME debug" \
+				--warningcontinuecancel "${1:-$(cat)}" || exit 120
+		fi
+	}
 
 else
 
 	function error_exit() {
-		echo "$PROGRAM_NAME: error: ${2:-'unknown error'}" 1>&2
+		echo "$PROGRAM_NAME: error: ${2:-'unkshown error'}" 1>&2
 		exit "${1:-1}"
 	}
 
 	function warning() {
-		echo "$PROGRAM_NAME: warning: ${1:-'unknown error'}" 1>&2
+		echo "$PROGRAM_NAME: warning: ${1:-'unkshown error'}" 1>&2
 	}
 
+	function debug() {
+		if [ -n "$DEBUG" ]; then
+			echo "$PROGRAM_NAME: debug: ${1:-$(cat)}" 1>&2
+		fi
+	}
 fi
 
 ### Profile setup
@@ -115,9 +128,7 @@ function detect_ipc_interface() {
 # Initialize IPC interface to Yakuake
 function init_ipc_interface() {
 	local comm=$(detect_ipc_interface)
-	if [ VERBOSE ] ; then
-		echo "Detected IPC interface: $comm"
-	fi
+	debug "Detected IPC interface: $comm"
 	if [[ "$comm" == none ]]; then
 
 		# Maybe Yakuake is not running. Launch de program and try it again
@@ -188,7 +199,7 @@ function yakuake_session() {
 	local title=''
 	local cmd=''
 	local hold=0
-	local now=1
+	local show=1
 
 	# Parse command line options
 	local option=''
@@ -221,11 +232,11 @@ function yakuake_session() {
 					fish)
 						FISH_SCRIPT=true
 						;;
-					verbose)
-						VERBOSE=true
+					debug)
+						DEBUG=1
 						;;
 					*)
-						error_exit 1 "unknown option '$OPTARG'."
+						error_exit 1 "unkshown option '$OPTARG'."
 						;;
 				esac
 				;;
@@ -244,10 +255,10 @@ function yakuake_session() {
 				cwd="$HOME"
 				;;
 			q)
-				now=0
+				show=0
 				;;
 			\?)
-				error_exit 1 "unknown option '$OPTARG'."
+				error_exit 1 "unkshown option '$OPTARG'."
 				;;
 			:)
 				error_exit 1 "missing argument for option '$OPTARG'."
@@ -255,18 +266,26 @@ function yakuake_session() {
 			esac
 	done
 
-	if [ VERBOSE ] ; then
-		echo "Verbose mode active"
-		echo "title: $title"
-		echo "cwd: $cwd"
-		echo "hold: $hold"
-		echo "now: $now"
-		echo "fish hack enabled: $FISH_SCRIPT"
-	fi
+	debug <<-EOF
+		Command line options parsed:
+		
+			PROGRAM_NAME=$PROGRAM_NAME
+			DEBUG=$DEBUG
+			FISH_SCRIPT=$FISH_SCRIPT
+		
+			title=$title
+			cwd=$cwd
+			hold=$hold
+			show=$show
+	EOF
 
 	if [[ -n "$cwd" && ! -d "$cwd" ]] ; then
 		error_exit 2 "working directory does not exist"
 	fi
+
+	# Escape working directory path
+	cwd=$(printf %q "$cwd")
+	debug "Working directory checked: cwd=$cwd"
 
 	if [[ -n "$cmd" ]]; then
 		if [[ "$hold" == 0 ]]; then
@@ -275,10 +294,7 @@ function yakuake_session() {
 	else
 		cmd='true'
 	fi
-	
-	if [ VERBOSE ] ; then
-		echo "cmd: $cmd"
-	fi
+	debug "Command checked: cmd=$cmd"
 
 	init_ipc_interface
 
@@ -295,7 +311,7 @@ function yakuake_session() {
 			clear
 			rm -f '$SESSION_FILE' 2>/dev/null
 			$(profile_setup_command)
-			cd $(printf %q "$cwd"); and $cmd
+			cd  and $cmd
 		EOF
 	else
 		cat > "$SESSION_FILE" <<-EOF
@@ -307,10 +323,11 @@ function yakuake_session() {
 		EOF
 	fi
 
-	if [ VERBOSE ] ; then
-		echo "Session file:"
-		cat $SESSION_FILE
-	fi
+	debug <<-EOF
+		Session file: $SESSION_FILE
+
+		$(cat $SESSION_FILE)
+	EOF
 
 	# We use souce builtin instead of '.' because of fish shell and
 	# we put a space before to exclude it from history.
@@ -323,7 +340,7 @@ function yakuake_session() {
 	fi
 
 	# Show the window of Yakuake
-	if [[ "$now" == 1 ]]; then
+	if [[ "$show" == 1 ]]; then
 		yakuake_showwindow
 	fi
 }
