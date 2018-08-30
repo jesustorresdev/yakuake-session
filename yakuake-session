@@ -2,18 +2,23 @@
 #
 # yakuake-session - A script to create new Yakuake sessions from command-line.
 #
-# Copyright 2010-2017 Jesús Torres <jmtorres@ull.es>
+# Copyright 2010-2018 Jesús Torres <jmtorres@ull.es>
 #
 # yakuake-session comes with ABSOLUTELY NO WARRANTY; for details see COPYING.
 # This is free software, and you are welcome to redistribute it
 # under certain conditions; see COPYING for details.
 #
 
+FISH_SHELL= # Set to 1 to override the fish shell autodetection
+if [[ -z "$FISH_SHELL" ]]; then
+	[[ "$SHELL" == */fish ]] && FISH_SHELL=1 || FISH_SHELL=0
+fi
+
 ### Utility functions
 # A few utility functions to show errors, handle programa exit and more
 
 PROGRAM_NAME="$(basename "$0")"
-SESSION_FILE=''
+DEBUG=
 
 # Show information about how to use this program
 function show_help() {
@@ -30,6 +35,8 @@ function show_help() {
 	  -q                        Do not open yakuake window.
 	  -t <title>                Set the title of the new tab
 	  -e <cmd>                  Command to execute. This option will catch all following arguments, so use it as the last option.
+	  --fish | --nofish         Override default shell autodetection to enable or disable the fish shell support.
+	  --debug                   Show yakuake_session debug information.
 
 	Arguments:
 	  args                      Arguments passed to command (for use with -e).
@@ -42,27 +49,40 @@ if type -P kdialog &> /dev/null; then
 	function error_exit() {
 		kdialog ${WINDOWID:+--attach $WINDOWID} \
 			--title "$PROGRAM_NAME error" \
-			--error "$PROGRAM_NAME error: ${2:-'unknown error'}."
+			--error "${2:-'unkshown error'}."
 		exit "${1:-1}"
 	}
 
 	function warning() {
 		kdialog ${WINDOWID:+--attach $WINDOWID} \
 			--title "$PROGRAM_NAME warning" \
-			--sorry "$PROGRAM_NAME warning: ${1:-'unknown error'}"
-}
+			--sorry "${1:-'unkshown error'}"
+	}
+
+	function debug() {
+		if [ -n "$DEBUG" ]; then
+			kdialog ${WINDOWID:+--attach $WINDOWID} \
+				--title "$PROGRAM_NAME debug" \
+				--warningcontinuecancel "${1:-$(cat)}" || exit 120
+		fi
+	}
 
 else
 
 	function error_exit() {
-		echo "$PROGRAM_NAME: error: ${2:-'unknown error'}" 1>&2
+		echo "$PROGRAM_NAME: error: ${2:-'unkshown error'}" 1>&2
 		exit "${1:-1}"
 	}
 
 	function warning() {
-		echo "$PROGRAM_NAME: warning: ${1:-'unknown error'}" 1>&2
+		echo "$PROGRAM_NAME: warning: ${1:-'unkshown error'}" 1>&2
 	}
 
+	function debug() {
+		if [ -n "$DEBUG" ]; then
+			echo "$PROGRAM_NAME: debug: ${1:-$(cat)}" 1>&2
+		fi
+	}
 fi
 
 ### Profile setup
@@ -111,6 +131,7 @@ function detect_ipc_interface() {
 # Initialize IPC interface to Yakuake
 function init_ipc_interface() {
 	local comm=$(detect_ipc_interface)
+	debug "Detected IPC interface: $comm"
 	if [[ "$comm" == none ]]; then
 
 		# Maybe Yakuake is not running. Launch de program and try it again
@@ -181,7 +202,7 @@ function yakuake_session() {
 	local title=''
 	local cmd=''
 	local hold=0
-	local now=1
+	local show=1
 
 	# Parse command line options
 	local option=''
@@ -211,8 +232,17 @@ function yakuake_session() {
 					hold|noclose)
 						hold=1;
 						;;
+					fish)
+						FISH_SHELL=1
+						;;
+					nofish)
+						FISH_SHELL=0
+						;;
+					debug)
+						DEBUG=1
+						;;
 					*)
-						error_exit 1 "unknown option '$OPTARG'."
+						error_exit 1 "unkshown option '$OPTARG'."
 						;;
 				esac
 				;;
@@ -231,10 +261,10 @@ function yakuake_session() {
 				cwd="$HOME"
 				;;
 			q)
-				now=0
+				show=0
 				;;
 			\?)
-				error_exit 1 "unknown option '$OPTARG'."
+				error_exit 1 "unkshown option '$OPTARG'."
 				;;
 			:)
 				error_exit 1 "missing argument for option '$OPTARG'."
@@ -242,9 +272,26 @@ function yakuake_session() {
 			esac
 	done
 
-	if [[ -n "$cwd" && ! -d "$cwd" ]] ; then
+	debug <<-EOF
+		Command line options parsed:
+		
+			PROGRAM_NAME=$PROGRAM_NAME
+			DEBUG=$DEBUG
+			FISH_SHELL=$FISH_SHELL
+		
+			title=$title
+			cwd=$cwd
+			hold=$hold
+			show=$show
+	EOF
+
+	if [[ -n "$cwd" && ! -d "$cwd" ]]; then
 		error_exit 2 "working directory does not exist"
 	fi
+
+	# Escape working directory path
+	cwd=$(printf %q "$cwd")
+	debug "Working directory checked: cwd=$cwd"
 
 	if [[ -n "$cmd" ]]; then
 		if [[ "$hold" == 0 ]]; then
@@ -253,7 +300,8 @@ function yakuake_session() {
 	else
 		cmd='true'
 	fi
-
+	debug "Command checked: cmd=$cmd"
+	
 	init_ipc_interface
 
 	# Create a new terminal session in Yakuake
@@ -261,17 +309,24 @@ function yakuake_session() {
 		error_exit 4 'cannot create a new session in Yakuake'
 
 	# Setup the session
-	SESSION_FILE="$(mktemp --tmpdir "$PROGRAM_NAME-XXXXXXXXXX")"
+	if [ "$FISH_SHELL" == 1 ]; then
+		AND_OP='and'
+	else
+		AND_OP='&&'
+	fi
 
+	SESSION_FILE="$(mktemp --tmpdir "$PROGRAM_NAME-XXXXXXXXXX")"
 	cat > "$SESSION_FILE" <<-EOF
 		clear
 		rm -f '$SESSION_FILE' 2>/dev/null
 		$(profile_setup_command)
-		if [ -z "\$FISH_VERSION" ]; then
-			cd $(printf %q "$cwd") && $cmd
-		else
-			cd $(printf %q "$cwd"); and $cmd
-		fi
+		cd $cwd $AND_OP $cmd
+	EOF
+
+	debug <<-EOF
+		Session file: $SESSION_FILE
+
+		$(cat $SESSION_FILE)
 	EOF
 
 	# We use souce builtin instead of '.' because of fish shell and
@@ -285,7 +340,7 @@ function yakuake_session() {
 	fi
 
 	# Show the window of Yakuake
-	if [[ "$now" == 1 ]]; then
+	if [[ "$show" == 1 ]]; then
 		yakuake_showwindow
 	fi
 }
@@ -297,3 +352,5 @@ if [[ "$UID" == 0 && "$logged_user" != "$USER" ]]; then
 else
 	yakuake_session "$@"
 fi
+
+# vim: set ts=2 sw=2 tw=0 noet :
