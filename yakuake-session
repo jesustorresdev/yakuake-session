@@ -310,7 +310,7 @@ function yakuake_session() {
 
 	# Setup the session
 	if [ "$FISH_SHELL" == 1 ]; then
-		AND_OP='and'
+		AND_OP='; and'
 	else
 		AND_OP='&&'
 	fi
