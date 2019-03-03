@@ -111,10 +111,23 @@ function profile_setup_command() {
 ### Yakuake IPC
 # Functions to make it easy to invoke some Yakuake methods
 
+function detect_dbus_cmd() {
+	type -P qdbus &> /dev/null
+	if [[ "$?" == 0 ]]; then
+		echo qdbus
+		return
+	fi
+	type -P qdbus-qt5 &> /dev/null
+	if [[ "$?" == 0 ]]; then
+		echo qdbus-qt5
+		return
+	fi
+}
+
 # Detect which IPC technology we have to use to talk to Yakuake
 function detect_ipc_interface() {
-	type -P qdbus &> /dev/null && \
-		qdbus 2> /dev/null | grep -q org.kde.yakuake
+	type -P "$dbus_cmd" &> /dev/null && \
+		"$dbus_cmd" 2> /dev/null | grep -q org.kde.yakuake
 	if [[ "$?" == 0 ]]; then
 		echo dbus
 		return
@@ -130,10 +143,9 @@ function detect_ipc_interface() {
 
 # Initialize IPC interface to Yakuake
 function init_ipc_interface() {
-	local comm=$(detect_ipc_interface)
+	local comm="$(detect_ipc_interface)"
 	debug "Detected IPC interface: $comm"
 	if [[ "$comm" == none ]]; then
-
 		# Maybe Yakuake is not running. Launch de program and try it again
 		type -P yakuake &> /dev/null ||
 			error_exit 20 "Yakuake is not installed"
@@ -147,23 +159,23 @@ function init_ipc_interface() {
 			error_exit 21 "wmctrl is not installed"
 
 		function yakuake_addsession() {
-			qdbus org.kde.yakuake /yakuake/sessions addSession > /dev/null
+			"$dbus_cmd" org.kde.yakuake /yakuake/sessions addSession > /dev/null
 		}
 
 		function yakuake_runcommand() {
-			qdbus org.kde.yakuake /yakuake/sessions runCommand "$1" > /dev/null
+			"$dbus_cmd" org.kde.yakuake /yakuake/sessions runCommand "$1" > /dev/null
 		}
 
 		function yakuake_settitle() {
-			local id="$(qdbus org.kde.yakuake /yakuake/sessions sessionIdList |
+			local id="$("$dbus_cmd" org.kde.yakuake /yakuake/sessions sessionIdList |
 				tr , "\n" | sort -g | tail -1 | tr -d '\n')"
-			qdbus org.kde.yakuake /yakuake/tabs setTabTitle "$id" "$1"
+			"$dbus_cmd" org.kde.yakuake /yakuake/tabs setTabTitle "$id" "$1"
 		}
 
 		function yakuake_showwindow() {
 			local wid=$(wmctrl -xl | grep -iF 'yakuake.yakuake' | head -n1 | cut -d' ' -f1)
 			if [[ -z "$wid" ]]; then
-				qdbus org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
+				"$dbus_cmd" org.kde.yakuake /yakuake/window toggleWindowState > /dev/null
 			else
 				wmctrl -i -a $wid
 			fi
@@ -274,11 +286,11 @@ function yakuake_session() {
 
 	debug <<-EOF
 		Command line options parsed:
-		
+
 			PROGRAM_NAME=$PROGRAM_NAME
 			DEBUG=$DEBUG
 			FISH_SHELL=$FISH_SHELL
-		
+
 			title=$title
 			cwd=$cwd
 			hold=$hold
@@ -301,8 +313,9 @@ function yakuake_session() {
 		cmd='true'
 	fi
 	debug "Command checked: cmd=$cmd"
-	
-	init_ipc_interface
+
+	local dbus_cmd="$(detect_dbus_cmd)"
+	init_ipc_interface "$dbus_cmd"
 
 	# Create a new terminal session in Yakuake
 	yakuake_addsession > /dev/null ||
