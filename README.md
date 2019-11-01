@@ -118,9 +118,18 @@ instead of Konsole coping `konsolehere.desktop` into KDE Service Menus.
 ```
 # KDE 4
 cp ServiceMenus/konsolehere.desktop ~/.kde/share/kde4/services/ServiceMenus/
-# KDE 5
+```
+
+```
+# KDE 5: for the current user only.
 cp ServiceMenus/konsolehere.desktop ~/.local/share/kservices5/ServiceMenus/
-cp ServiceMenus/konsolehere.desktop /usr/share/kservices5/ServiceMenus/ # if using Manjaro Arch Linux
+```
+
+or
+
+```
+# KDE 5: system-wide
+cp ServiceMenus/konsolehere.desktop /usr/share/kservices5/ServiceMenus/
 ```
 
 If we do not want to change the behavior of "Open terminal here", then copy
@@ -130,9 +139,18 @@ Dolphin.
 ```
 # KDE 4
 cp ServiceMenus/yakuakehere.desktop ~/.kde/share/kde4/services/ServiceMenus/
-# KDE 5
+```
+
+```
+# KDE 5: for the current user only.
 cp ServiceMenus/yakuakehere.desktop ~/.local/share/kservices5/ServiceMenus/
-cp ServiceMenus/yakuakehere.desktop /usr/share/kservices5/ServiceMenus/ # if using Manjaro Arch Linux
+```
+
+or
+
+```
+# KDE 5: system-wide
+cp ServiceMenus/yakuakehere.desktop /usr/share/kservices5/ServiceMenus/
 ```
 
 ## Quick Access Menu
