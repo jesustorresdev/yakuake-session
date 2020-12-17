@@ -27,20 +27,50 @@ function show_help() {
 	Usage: $PROGRAM_NAME [options] [args]
 
 	Options:
-	  --help                    Show help about options.
-	  -h, --homedir             Set the working directory of the new tab to the user's home.
-	  -w, --workdir <dir>       Set the working directory of the new tab to 'dir'
-	  --hold, --noclose         Do not close the session automatically when the command ends.
-	  -p <property=value>       Change the value of a profile property (only for KDE 4).
-	  -q                        Do not open yakuake window.
-	  -t <title>                Set the title of the new tab
 	  -e <cmd>                  Command to execute. This option will catch all following arguments, so use it as the last option.
+	  -h, --homedir             Set the working directory of the new tab to the user's home.
+	  -p <property=value>       Change the value of a profile property (only for KDE 4).
+	  -q, --quiet               Do not open yakuake window.
+	  -t, --title <title>       Set the title of the new tab.
+	  -w, --workdir <dir>       Set the working directory of the new tab to 'dir'.
 	  --fish | --nofish         Override default shell autodetection to enable or disable the fish shell support.
-	  --debug                   Show yakuake_session debug information.
+	  --hold, --noclose         Do not close the session automatically when the command ends.
+
+	  --help                    Show help about options.
+	  -d, --debug               Show yakuake_session debug information.
 
 	Arguments:
 	  args                      Arguments passed to command (for use with -e).
 	EOF
+}
+
+# Parse command line options
+function getopts() {
+	local option
+	local options=("$@")
+	local optind=0
+
+	for optind in ${!options[@]}; do	
+		if [ "${options[$optind]}" == '-e' ]; then
+			break
+		fi
+	done
+	optind=$((optind + 1))
+
+	getopt \
+		--name "$PROGRAM_NAME" \
+		--options "hep:qt:w:d" \
+		--longoptions "homedir" \
+		--longoptions "quiet" \
+		--longoptions "title:" \
+		--longoptions "workdir:" \
+		--longoptions "fish" \
+		--longoptions "nofish" \
+		--longoptions "hold" \
+		--longoptions "noclose" \
+	  --longoptions "help" \
+		--longoptions "debug" \
+		-- "${options[@]::$optind}" '--' "${options[@]:$optind}"
 }
 
 # Functions to show error and warning messages
@@ -213,75 +243,73 @@ function yakuake_session() {
 	local cwd="$PWD"
 	local title=''
 	local cmd=''
+	local execute=0
 	local hold=0
 	local show=1
+	local options
 
 	# Parse command line options
-	local option=''
-	local OPTIND=1
-	local OPTARG=''
+	options=$(getopts "$@")
+	test "$?" -eq 0 || exit 1
+	eval set -- "$options"
 
-	while getopts ":-:t:p:w:he:q" option; do
-		case $option in
-			-)
-				case "$OPTARG" in
-					help)
-						show_help
-						exit 0
-						;;
-					homedir)
-						cwd="$HOME"
-						;;
-					workdir)
-						cwd="${!OPTIND}"
-						[[ "$cwd" == -* ]] &&
-							error_exit 1 "missing argument for option '$OPTARG'."
-						OPTIND=$(($OPTIND + 1))
-						;;
-					workdir=*)
-						cwd="${OPTARG#*=}"
-						;;
-					hold|noclose)
-						hold=1;
-						;;
-					fish)
-						FISH_SHELL=1
-						;;
-					nofish)
-						FISH_SHELL=0
-						;;
-					debug)
-						DEBUG=1
-						;;
-					*)
-						error_exit 1 "unkshown option '$OPTARG'."
-						;;
-				esac
+	while true; do
+		case "$1" in
+			'-e')
+				execute=1
+				shift
 				;;
-			p)
-				add_profile_setting "$OPTARG"
+			'-h'|'--homedir')
+				cwd="$HOME"
+				shift
 				;;
-			e)
-				shift $((OPTIND-2))
-				cmd=$(printf '%q ' "$@")
+			'-p')
+				add_profile_setting "$2"
+				shift 2
+				;;
+			'-q'|'--quiet')
+				show=0
+				shift
+				;;
+			'-t'|'--title')
+				title="$2"
+				shift 2
+				;;
+			'-w'|'--workdir')
+				cwd="$2"
+				shift 2
+				;;
+			'--fish')
+				FISH_SHELL=1
+				shift
+				;;
+			'--nofish')
+				FISH_SHELL=0
+				shift
+				;;
+			'--hold'|'--noclose')
+				hold=1;
+				shift
+				;;
+			'--help')
+				show_help
+				exit 0
+				;;
+			'-d'|'--debug')
+				DEBUG=1
+				shift
+				;;
+			'--')
+				shift
+				if [[ "$execute" == 1 && "$#" -gt 0 ]]; then
+					cmd=$(printf '%q ' "$@")
+				fi
 				break
 				;;
-			t)
-				title="$OPTARG"
+			*)
+				error_exit 1 'getopt internal error.'
 				;;
-			h)
-				cwd="$HOME"
-				;;
-			q)
-				show=0
-				;;
-			\?)
-				error_exit 1 "unkshown option '$OPTARG'."
-				;;
-			:)
-				error_exit 1 "missing argument for option '$OPTARG'."
-				;;
-			esac
+		esac
 	done
 
 	debug <<-EOF
@@ -359,7 +387,7 @@ function yakuake_session() {
 }
 
 # Detect if the script was called with a different user who logged in
-logged_user=$(logname)
+logged_user=$(logname 2> /dev/null )
 if [[ "$UID" == 0 && "$logged_user" != "$USER" ]]; then
 	su "$logged_user" -c '"$0" "$@"' -- "$0" "$@"
 else
