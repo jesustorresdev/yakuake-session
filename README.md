@@ -19,6 +19,8 @@ breaks the command `qdbus` in Kubuntu 13.04/13.10. It can be fixed installing
  * Requires wmctrl to change focus if yakuake is already open. Get it from the
 repo e.g. `apt install wmctrl`
 
+ * Requires qdbus-qt5 to connect to running yakuake. Install it, e.g. `apt install qdbus-qt5`
+
  * Fish is not a POSIX compliant shell, so yakuake_session detects if it is the
 user default shell and applies some fixes. If the autodetection doesn't work
 properly, open the script and set the variable FISH_SHELL in the first lines to
